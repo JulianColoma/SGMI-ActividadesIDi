@@ -1,0 +1,113 @@
+import { GrupoModel, IGrupo } from '../models/grupo';
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export class GrupoController {
+  /**
+   * Crear un nuevo grupo (solo admin)
+   */
+  static async create(
+    nombre: string,
+    role: string,
+    descripcion?: string,
+    facultad_id?: number
+  ): Promise<ApiResponse<IGrupo>> {
+    if (role !== 'admin') {
+      return { success: false, error: 'No autorizado' };
+    }
+
+    try {
+      const grupo = await GrupoModel.create({
+        nombre: nombre.trim(),
+        descripcion: descripcion?.trim() || undefined,
+        facultad_id: facultad_id || null,
+        estado: true
+      });
+
+      return {
+        success: true,
+        data: grupo,
+        message: 'Grupo creado exitosamente'
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Error al crear el grupo' };
+    }
+  }
+
+  /**
+   * Obtener todos los grupos (todos los roles pueden ver)
+   */
+  static async getAll(facultadId?: number): Promise<ApiResponse<IGrupo[]>> {
+    try {
+      const grupos = await GrupoModel.findAll(facultadId);
+      return { success: true, data: grupos, message: `Se encontraron ${grupos.length} grupos` };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Error al obtener los grupos' };
+    }
+  }
+
+  /**
+   * Obtener un grupo por ID
+   */
+  static async getById(grupoId: number): Promise<ApiResponse<IGrupo>> {
+    try {
+      if (!grupoId || grupoId <= 0) {
+        return { success: false, error: 'ID de grupo inválido' };
+      }
+
+      const grupo = await GrupoModel.findById(grupoId);
+      if (!grupo) return { success: false, error: 'Grupo no encontrado' };
+
+      return { success: true, data: grupo };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Error al obtener el grupo' };
+    }
+  }
+
+  /**
+   * Actualizar un grupo (solo admin)
+   */
+  static async update(
+    grupoId: number,
+    role: string,
+    datos: Partial<IGrupo>
+  ): Promise<ApiResponse<IGrupo>> {
+    if (role !== 'admin') {
+      return { success: false, error: 'No autorizado' };
+    }
+
+    try {
+      if (!grupoId || grupoId <= 0) return { success: false, error: 'ID de grupo inválido' };
+
+      const grupoActualizado = await GrupoModel.update(grupoId, datos);
+      if (!grupoActualizado) return { success: false, error: 'No se pudo actualizar el grupo' };
+
+      return { success: true, data: grupoActualizado, message: 'Grupo actualizado exitosamente' };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Error al actualizar el grupo' };
+    }
+  }
+
+  /**
+   * Eliminar un grupo (solo admin)
+   */
+  static async delete(grupoId: number, role: string): Promise<ApiResponse<null>> {
+    if (role !== 'admin') return { success: false, error: 'No autorizado' };
+
+    try {
+      if (!grupoId || grupoId <= 0) return { success: false, error: 'ID de grupo inválido' };
+
+      const eliminado = await GrupoModel.delete(grupoId);
+      if (!eliminado) return { success: false, error: 'No se pudo eliminar el grupo' };
+
+      return { success: true, message: 'Grupo eliminado exitosamente' };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Error al eliminar el grupo' };
+    }
+  }
+}
