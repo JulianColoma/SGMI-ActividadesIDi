@@ -31,14 +31,14 @@ export default function RegisterPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Si tu API necesita token de admin:
-          // "Authorization": `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
           nombreCompleto,
           email,
           password,
-        }),
+        }
+      ),
+      credentials: 'include'
       });
 
       const data = await res.json();

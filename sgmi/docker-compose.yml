@@ -17,22 +17,6 @@ services:
       timeout: 5s
       retries: 5
 
-  web:
-    image: node:20
-    container_name: sgmi_web
-    restart: unless-stopped
-    env_file: ./.env
-    working_dir: /usr/src/app
-    volumes:
-      - ./:/usr/src/app
-      - /usr/src/app/node_modules
-    ports:
-      - "3000:3000"
-    depends_on:
-      db:
-        condition: service_healthy
-    command: sh -c "npm install --silent && npm run dev"
-
 volumes:
   db_data:
     name: sgmi_db_data

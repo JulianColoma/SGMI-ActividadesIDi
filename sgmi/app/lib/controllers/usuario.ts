@@ -28,3 +28,4 @@ export class UsuarioController {
     } catch (e: any) { return { success: false, error: e.message } }
   }
 }
+ 
