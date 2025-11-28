@@ -1,9 +1,25 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.input-base {
+  @apply w-full bg-white border border-[#D0D0D0] rounded-md py-2 px-3 
+         placeholder:text-[#9A9A9A] text-black focus:outline-none;
+}
+
+.textarea-base {
+  @apply w-full bg-white border border-[#D0D0D0] rounded-md py-2 px-3 
+         placeholder:text-[#9A9A9A] text-black resize-none focus:outline-none;
+}
+
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
+
+
+
 
 @theme inline {
   --color-background: var(--background);
@@ -24,3 +40,4 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+

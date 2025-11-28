@@ -2,8 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Rendilo",
-  description: "Plataforma de exámenes",
+  title: "SGMI",
+  description: "SISTEMA DE GESTIÓN DE MEMORIAS",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
