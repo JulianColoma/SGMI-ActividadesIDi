@@ -33,12 +33,12 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          nombreCompleto,
+          nombre: nombreCompleto,
           email,
           password,
+          role: "user",
         }
       ),
-      credentials: 'include'
       });
 
       const data = await res.json();

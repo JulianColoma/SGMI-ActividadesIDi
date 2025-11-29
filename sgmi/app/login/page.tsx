@@ -37,7 +37,7 @@ export default function LoginPage() {
         localStorage.setItem("token", data.token);
       }
 
-      router.push("/dashboard"); // cambia la ruta si tu home es otra
+      router.push("/"); // cambia la ruta si tu home es otra
     } catch (err) {
       console.error(err);
       setError("Error de conexión con el servidor");
