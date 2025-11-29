@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -32,12 +33,7 @@ export default function LoginPage() {
         return;
       }
 
-      // guarda token si tu API lo devuelve
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
-
-      router.push("/"); // cambia la ruta si tu home es otra
+      router.push("/dashboard"); // cambia la ruta si tu home es otra
     } catch (err) {
       console.error(err);
       setError("Error de conexión con el servidor");
@@ -130,3 +126,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+

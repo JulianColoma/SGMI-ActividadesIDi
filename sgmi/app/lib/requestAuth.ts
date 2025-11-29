@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { verifyToken, JwtPayload } from './auth';
+import { cookies } from 'next/headers';
 
-export function getAuth(request: NextRequest): JwtPayload | null {
-  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.split(' ')[1];
+export async function getAuth(request: NextRequest): Promise<JwtPayload | null> {
+  const token = cookies().get('token')?.value;
+  if (!token) return null;
   return verifyToken(token);
 }

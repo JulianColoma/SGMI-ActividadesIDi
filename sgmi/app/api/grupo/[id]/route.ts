@@ -13,7 +13,7 @@ export async function GET(
 ) {
   try {
   const { id } = await params;
-  const auth = getAuth(request);
+  const auth = await getAuth(request);
   const role = auth?.role ?? 'user';
 
     const response = await GrupoController.getById(parseInt(id));
@@ -37,7 +37,7 @@ export async function PUT(
 ) {
   try {
   const { id } = await params;
-  const auth = getAuth(request);
+  const auth = await getAuth(request);
   const role = auth?.role ?? 'user';
 
     const body = await request.json();
@@ -71,7 +71,7 @@ export async function DELETE(
 ) {
   try {
   const { id } = await params;
-  const auth = getAuth(request);
+  const auth = await getAuth(request);
   const role = auth?.role ?? 'user';
 
     const response = await GrupoController.delete(parseInt(id), role);

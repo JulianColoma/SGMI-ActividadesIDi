@@ -24,8 +24,7 @@ export class UsuarioController {
 
       const token = signToken({ id: user.id, email: user.email, role: user.role, nombre: user.nombre });
 
-      return { success: true, data: { id: user.id, nombre: user.nombre, email: user.email, role: user.role, token } };
+      return { success: true, data: { id: user.id, nombre: user.nombre, email: user.email, role: user.role }, token };
     } catch (e: any) { return { success: false, error: e.message } }
   }
 }
- 

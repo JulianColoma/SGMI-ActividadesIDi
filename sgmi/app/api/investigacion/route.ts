@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-  const auth = getAuth(request);
+  const auth = await getAuth(request);
   const role = auth?.role ?? 'user';
     const body = await request.json();
     try { await createInvestigacionSchema.parseAsync(body); } catch (err: any) { return NextResponse.json({ success: false, error: err.errors || err.message }, { status: 400 }); }

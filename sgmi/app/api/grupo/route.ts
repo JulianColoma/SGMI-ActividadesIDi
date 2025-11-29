@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-  const auth = getAuth(request);
+  const auth = await getAuth(request);
   const role = auth?.role ?? 'user';
 
     // validar body con Zod

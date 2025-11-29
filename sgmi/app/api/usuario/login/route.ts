@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UsuarioController } from "@/app/lib/controllers/usuario";
 import { loginSchema, registerSchema } from "@/app/lib/schemas/usuario";
-
+import { serialize } from "cookie";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,18 @@ export async function POST(request: NextRequest) {
       );
     }
     const res = await UsuarioController.login(body.email, body.password);
-    return NextResponse.json(res, { status: res.success ? 200 : 401 });
+    if (!res.success) {
+      return NextResponse.json(res, { status: 401 });
+    }
+    const cookie = serialize("token", res.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      path: "/",
+    });
+    const response = NextResponse.json({ success: true, data: res.data });
+    response.headers.set("Set-Cookie", cookie);
+    return response;
   } catch (e: any) {
     return NextResponse.json(
       { success: false, error: e.message },

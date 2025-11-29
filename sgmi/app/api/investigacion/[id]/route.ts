@@ -10,7 +10,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const auth = getAuth(request);
+    const auth = await getAuth(request);
     const role = auth?.role ?? 'user';
     const body = await request.json();
     try {
@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const auth = getAuth(request);
+    const auth = await getAuth(request);
     const role = auth?.role ?? 'user';
     const res = await InvestigacionController.delete(parseInt(id), role);
     return NextResponse.json(res, { status: res.success ? 200 : res.error === 'No autorizado' ? 403 : 404 });
