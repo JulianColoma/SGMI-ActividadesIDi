@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
 import Sidebar from "./components/sidebar";
 import { HiOutlineUserCircle } from "react-icons/hi";
 import Image from "next/image";
+import { withAuth } from "./withAuth";
 
-export default function HomePage() {
+function HomePage() {
   return (
     <div className="min-h-screen flex bg-white font-sans">
 
@@ -76,3 +77,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+export default withAuth(HomePage);
