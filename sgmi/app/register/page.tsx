@@ -37,7 +37,7 @@ export default function RegisterPage() {
           nombre: nombreCompleto,
           email,
           password,
-          role: "user",
+          role: "admin",
         }
       ),
       });

@@ -7,7 +7,7 @@ import { getAuth } from "@/app/lib/requestAuth";
 export async function POST(request: NextRequest) {
   try {
     // 1. Verificación de Seguridad
-    const auth = await getAuth(request);
+   const auth = await getAuth(request);
 
     if (!auth || auth.role !== "admin") {
       return NextResponse.json(

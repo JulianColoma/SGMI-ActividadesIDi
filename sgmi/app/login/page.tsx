@@ -33,7 +33,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/dashboard"); // cambia la ruta si tu home es otra
+      router.push("/"); 
     } catch (err) {
       console.error(err);
       setError("Error de conexión con el servidor");
