@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
   try {
     const decoded = verifyToken(token);
     if (!decoded) throw new Error("Invalid token");
-    return NextResponse.json({ message: "Authorized", user: decoded }, { status: 200 });
+    return NextResponse.json({ message: "Authorized",isAuthorized:true, user: decoded }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ message: "Unauthorized",isAuthorized:false }, { status: 401 });
   }
 }

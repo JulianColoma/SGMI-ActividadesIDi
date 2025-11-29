@@ -2,15 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "../AuthContext";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
-  const menuItems = [
+  const baseItems = [
     { label: "Página Principal", href: "/" },
     { label: "Proyectos de I+D+i", href: "/proyectos" },
     { label: "Trabajos Presentados", href: "/trabajos" },
     { label: "Gestión de memorias", href: "/memorias" },
+  ];
+
+  const menuItems = [
+    ...baseItems,
+    ...(user?.role === "admin"
+      ? [{ label: "Usuarios", href: "/usuarios" }]
+      : [])
   ];
 
   return (
@@ -40,13 +49,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      <button
-        onClick={() => console.log("Cerrar sesión")}
-        className="mt-10 w-full py-2 text-sm bg-[#e5e7eb] text-[#27333d] rounded hover:bg-[#d1d5db]"
-      >
-        Cerrar sesión
-      </button>
     </aside>
   );
 }

@@ -3,8 +3,10 @@
 import Sidebar from "@/app/components/sidebar";
 import { useRouter } from "next/navigation";
 import { HiOutlineEye, HiOutlineTrash } from "react-icons/hi";
+import UserPill from "../components/userPill";
+import { withAuth } from "../withAuth";
 
-export default function MemoriasPage() {
+ function MemoriasPage() {
   const router = useRouter();
 
   // Ejemplo de datos
@@ -31,10 +33,12 @@ export default function MemoriasPage() {
       <Sidebar />
 
       <main className="flex-1 px-12 py-8">
-
+      <div className="flex align-center justify-between">
         <h1 className="text-3xl font-semibold text-gray-800 mb-8">
           Gestión de memorias
         </h1>
+        <UserPill/>
+      </div>
 
         {/* BUSCADOR */}
         <input
@@ -80,3 +84,5 @@ export default function MemoriasPage() {
     </div>
   );
 }
+
+export default withAuth(MemoriasPage);

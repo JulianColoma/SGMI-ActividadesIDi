@@ -68,7 +68,7 @@ export default function ModalTrabajo({
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const res = await UsuarioController.login(body.email, body.password);
-    if (!res.success) {
+    if (!res.success || !res.token) {
       return NextResponse.json(res, { status: 401 });
     }
     const cookie = serialize("token", res.token, {

@@ -4,6 +4,7 @@ import Sidebar from "./components/sidebar";
 import { HiOutlineUserCircle } from "react-icons/hi";
 import Image from "next/image";
 import { withAuth } from "./withAuth";
+import UserPill from "./components/userPill";
 
 function HomePage() {
   return (
@@ -17,8 +18,7 @@ function HomePage() {
 
         {/* HEADER SUPERIOR */}
         <div className="flex justify-end items-center mb-8">
-          <span className="text-gray-700 text-sm mr-2">Nombre de Usuario</span>
-          <HiOutlineUserCircle className="w-7 h-7 text-gray-700" />
+          <UserPill/>
         </div>
 
         {/* TITULO CENTRADO */}

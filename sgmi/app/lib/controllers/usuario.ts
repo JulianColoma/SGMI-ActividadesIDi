@@ -27,4 +27,30 @@ export class UsuarioController {
       return { success: true, data: { id: user.id, nombre: user.nombre, email: user.email, role: user.role }, token };
     } catch (e: any) { return { success: false, error: e.message } }
   }
+
+  static async getAll() {
+    try {
+      const q = 'SELECT id, nombre, email, role FROM usuarios ORDER BY id ASC';
+      const r = await pool.query(q);
+      return { success: true, data: r.rows };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  static async delete(id: number) {
+    try {
+      const q = 'DELETE FROM usuarios WHERE id = $1 RETURNING id';
+      const r = await pool.query(q, [id]);
+
+      if (!r.rows.length) {
+        return { success: false, error: 'Usuario no encontrado' };
+      }
+
+      return { success: true, data: { id: r.rows[0].id } };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
 }
+

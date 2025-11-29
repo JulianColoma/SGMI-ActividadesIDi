@@ -6,9 +6,11 @@ import Sidebar from "../components/sidebar";
 import NewProyecto from "../components/newproyecto";
 import { useState } from "react";
 import ModalProyectoDatos from "../components/modalProyectorsDatos";
+import UserPill from "../components/userPill";
+import { withAuth } from "../withAuth";
 
 
-export default function ProyectosPage() {
+function ProyectosPage() {
 
   const [modalDatos, setModalDatos] = useState(false);
   const [modalDetalles, setModalDetalles] = useState(false);
@@ -26,10 +28,7 @@ export default function ProyectosPage() {
             Gestión de Proyectos de I+D+i
           </h1>
 
-          <div className="flex items-center gap-2 text-gray-700 whitespace-nowrap">
-            <span className="text-sm">Nombre de Usuario</span>
-            <HiOutlineUserCircle className="w-7 h-7 mt-[1px]" />
-          </div>
+          <UserPill/>
         </div>
 
         <div className="flex items-center justify-between mb-6">
@@ -106,3 +105,4 @@ export default function ProyectosPage() {
     </div>
   );
 }
+export default withAuth(ProyectosPage);

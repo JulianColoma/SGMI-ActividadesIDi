@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import {
-    HiOutlineUserCircle,
     HiOutlineSearch,
     HiOutlineEye,
     HiOutlineTrash,
@@ -14,8 +13,10 @@ import {
 import ModalTrabajo from "@/app/components/modalTrabajo";
 import ModalProyectoDatos from "@/app/components/modalProyectorsDatos";
 import NewProyecto from "@/app/components/newproyecto";
+import UserPill from "@/app/components/userPill";
+import { withAuth } from "@/app/withAuth";
 
-export default function MemoriaDetallePage() {
+function MemoriaDetallePage() {
     const { id } = useParams();
 
     // TABS
@@ -84,10 +85,7 @@ export default function MemoriaDetallePage() {
                 <div className="flex items-center justify-between mb-10">
                     <h1 className="text-3xl font-semibold text-gray-800">Memoria {id}</h1>
 
-                    <div className="flex items-center gap-2 text-gray-700">
-                        <span className="text-sm">Nombre de Usuario</span>
-                        <HiOutlineUserCircle className="w-7 h-7" />
-                    </div>
+                    <UserPill/>
                 </div>
 
                 {/* TABS */}
@@ -314,3 +312,5 @@ export default function MemoriaDetallePage() {
         </div>
     );
 }
+
+export default withAuth(MemoriaDetallePage);
