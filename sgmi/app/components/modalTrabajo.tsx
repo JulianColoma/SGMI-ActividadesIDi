@@ -7,28 +7,86 @@ export default function ModalTrabajo({
   onClose,
   onSave,
   modoInicial,
+  initialData,
+  editId,
 }: {
   open: boolean;
   onClose: () => void;
   onSave: (data: any) => void;
   modoInicial: "nacional" | "internacional";
+  initialData?: any;
+  editId?: number | null;
 }) {
-  // Tipo de reunión según el toggle inicial
-  const [tipo, setTipo] = useState<"nacional" | "internacional">(modoInicial);
+  // Tipo de reunión según el toggle inicial o initialData
+  const initialTipo = initialData ? (initialData.reunion_tipo && initialData.reunion_tipo.toLowerCase() === 'internacional' ? 'internacional' : (initialData.pais ? 'internacional' : 'nacional')) : modoInicial;
+  const [tipo, setTipo] = useState<"nacional" | "internacional">(initialTipo);
 
-  // Estado del formulario (CONTROLADO → NO MÁS ERRORES)
-  const [form, setForm] = useState({
-    nombreReunion: "",
-    ciudad: "",
-    expositor: "",
-    fecha: "",
-    titulo: "",
-    pais: modoInicial === "nacional" ? "Argentina" : "",
-  });
+  // Estado del formulario (si viene initialData lo prellenamos)
+  const [form, setForm] = useState(() => ({
+    nombreReunion: initialData?.reunion || initialData?.nombreReunion || "",
+    ciudad: initialData?.ciudad || "",
+    expositor: initialData?.expositor_nombre || "",
+    fecha: initialData?.fecha_presentacion ? String(initialData.fecha_presentacion).slice(0,10) : "",
+    titulo: initialData?.titulo || "",
+    pais: initialData?.pais || (initialData ? (initialData.reunion_tipo === 'INTERNACIONAL' ? '' : 'Argentina') : (modoInicial === 'nacional' ? 'Argentina' : '')),
+  }));
 
   // Defensor: siempre mantener value en todos los inputs
   const handleChange = (field: string, value: string) => {
     setForm((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async (e?: any) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      // Preparar payload mínimo requerido por la API
+      const payload: any = {
+        titulo: form.titulo,
+        fecha_presentacion: form.fecha || undefined,
+        resumen: undefined,
+        expositor_id: null,
+        reunion_id: null,
+        grupo_id: null,
+        // datos extra (no usados por el modelo directamente pero útiles para el backend)
+        ciudad: form.ciudad,
+        pais: form.pais,
+        nombreReunion: form.nombreReunion,
+        tipo: tipo,
+        expositor: form.expositor,
+      };
+
+      // si tenemos editId o initialData.id usamos PUT, sino POST
+      const isEdit = !!(editId || initialData?.id);
+      const url = isEdit ? `/api/trabajo/${editId ?? initialData.id}` : '/api/trabajo';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.error || data.message || 'Error al guardar');
+        setLoading(false);
+        return;
+      }
+
+      // Llamar al callback con la respuesta del servidor
+      onSave(data);
+      setLoading(false);
+      onClose();
+    } catch (e: any) {
+      setError(e.message || 'Error en la petición');
+      setLoading(false);
+    }
   };
 
   if (!open) return null;
@@ -83,25 +141,13 @@ export default function ModalTrabajo({
           <div>
             <label className="font-semibold text-black">Nombre de la Reunión</label>
 
-            {tipo === "nacional" ? (
-              <input
-                className="input-base mt-1"
-                placeholder="Congreso"
-                value={form.nombreReunion}
-                onChange={(e) => handleChange("nombreReunion", e.target.value)}
-              />
-            ) : (
-              <select
-                className="input-base bg-[#f3f4f6] mt-1"
-                value={form.nombreReunion}
-                onChange={(e) => handleChange("nombreReunion", e.target.value)}
-              >
-                <option value="">Seleccione...</option>
-                <option value="Congreso">Congreso</option>
-                <option value="Simposio">Simposio</option>
-                <option value="Conferencia Internacional">Conferencia Internacional</option>
-              </select>
-            )}
+            <input
+              className="input-base mt-1"
+              placeholder={tipo === "nacional" ? "Congreso" : "Nombre de la reunión internacional"}
+              value={form.nombreReunion}
+              onChange={(e) => handleChange("nombreReunion", e.target.value)}
+            />
+            
           </div>
 
           {/* CIUDAD */}
@@ -114,7 +160,6 @@ export default function ModalTrabajo({
               onChange={(e) => handleChange("ciudad", e.target.value)}
             />
           </div>
-
           {/* EXPOSITOR */}
           <div>
             <label className="font-semibold text-black">Nombre de Expositor/a</label>
@@ -172,12 +217,14 @@ export default function ModalTrabajo({
         </div>
 
         {/* BOTÓN GUARDAR */}
+        {error && <div className="text-red-600 mt-4">{error}</div>}
         <div className="flex justify-end mt-6">
           <button
-            onClick={() => onSave(form)}
-            className="px-8 py-3 rounded-md bg-[#00c9a7] text-white font-medium text-lg hover:bg-[#00b197]"
+            onClick={handleSave}
+            disabled={loading}
+            className={`px-8 py-3 rounded-md text-white font-medium text-lg ${loading ? 'bg-gray-400' : 'bg-[#00c9a7] hover:bg-[#00b197]'}`}
           >
-            Guardar Trabajo
+            {loading ? 'Guardando...' : 'Guardar Trabajo'}
           </button>
         </div>
 

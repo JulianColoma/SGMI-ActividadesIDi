@@ -8,7 +8,7 @@ export class UsuarioController {
     try {
       const hashed = await bcrypt.hash(payload.password, 10);
       const q = 'INSERT INTO usuarios (nombre, email, password, role) VALUES ($1,$2,$3,$4) RETURNING id, nombre, email, role';
-      const r = await pool.query(q, [payload.nombre, payload.email, hashed, payload.role || 'user']);
+      const r = await pool.query(q, [payload.nombre, payload.email, hashed, payload.role]);
       return { success: true, data: r.rows[0] };
     } catch (e: any) { return { success: false, error: e.message } }
   }

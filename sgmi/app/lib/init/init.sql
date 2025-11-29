@@ -55,13 +55,10 @@ CREATE TABLE IF NOT EXISTS memorias (
     UNIQUE (grupo_id, anio)
 );
 
--- Personal (investigadores / expositores)
+-- Personal (expositores)
 CREATE TABLE IF NOT EXISTS personal (
     id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    apellido VARCHAR(100) NOT NULL,
-    afiliacion VARCHAR(255),
-    email VARCHAR(255)
+    nombre VARCHAR(255) NOT NULL
 );
 
 -- Investigaciones (proyectos)
@@ -78,14 +75,6 @@ CREATE TABLE IF NOT EXISTS investigaciones (
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Participación N:N entre investigaciones y personal
-CREATE TABLE IF NOT EXISTS investigacion_participantes (
-    investigacion_id INTEGER NOT NULL REFERENCES investigaciones(id) ON DELETE CASCADE,
-    personal_id INTEGER NOT NULL REFERENCES personal(id) ON DELETE CASCADE,
-    rol VARCHAR(100),
-    PRIMARY KEY (investigacion_id, personal_id)
-);
-
 -- Reuniones / congresos
 CREATE TABLE IF NOT EXISTS reuniones (
     id SERIAL PRIMARY KEY,
@@ -93,7 +82,8 @@ CREATE TABLE IF NOT EXISTS reuniones (
     nombre VARCHAR(255) NOT NULL,
     ciudad VARCHAR(255),
     fecha_inicio DATE,
-    fecha_fin DATE
+    fecha_fin DATE,
+    pais VARCHAR(100)
 );
 
 -- Trabajos presentados en congresos
@@ -137,23 +127,16 @@ INSERT INTO grupos (nombre, descripcion, facultad_id) VALUES
 ('Grupo de Estudios Sociales y Culturales', 'Análisis interdisciplinario de fenómenos sociales contemporáneos.', 3);
 
 -- Personal
-INSERT INTO personal (nombre, apellido, afiliacion, email) VALUES
-('Laura', 'Martínez', 'Facultad de Ingeniería', 'laura.martinez@sgmi.local'),
-('Carlos', 'Díaz', 'Facultad de Ciencias', 'carlos.diaz@sgmi.local'),
-('Sofía', 'Ramírez', 'Facultad de Humanidades', 'sofia.ramirez@sgmi.local');
+INSERT INTO personal (nombre) VALUES
+('Laura Martínez'),
+('Carlos Díaz'),
+('Sofía Ramírez');
 
 -- Investigaciones
 INSERT INTO investigaciones (tipo, codigo, fecha_inicio, fecha_fin, nombre, descripcion, fuente_financiamiento, grupo_id)
 VALUES
 ('Proyecto', 'ENR-2025-001', '2025-01-15', NULL, 'Desarrollo de paneles solares de alta eficiencia', 'Investigación aplicada sobre nuevos materiales.', 'Ministerio de Ciencia', 1),
 ('Proyecto', 'BIO-2025-002', '2025-03-10', NULL, 'Producción sostenible de enzimas industriales', 'Proyecto colaborativo con el sector privado.', 'Fondo Nacional de Innovación', 2);
-
--- Participantes en investigaciones
-INSERT INTO investigacion_participantes (investigacion_id, personal_id, rol)
-VALUES
-(1, 1, 'Investigadora Principal'),
-(2, 2, 'Investigador Asociado'),
-(2, 3, 'Colaboradora');
 
 -- Memorias anuales (una por grupo)
 INSERT INTO memorias (grupo_id, anio, contenido, creado_por)

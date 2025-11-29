@@ -1,60 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
-import { HiOutlineUserCircle, HiOutlineSearch } from "react-icons/hi";
+import { HiOutlineUserCircle, HiOutlineSearch, HiOutlineTrash, HiOutlineEye } from "react-icons/hi";
 import ModalTrabajo from "../components/modalTrabajo";
-
-// Datos demo (después conectamos API real)
-const trabajosDemo = [
-    {
-        reunion: "Reunión A",
-        ciudad: "Buenos Aires",
-        pais: "Argentina",
-        fecha: "2024-01-10",
-        trabajo: "Análisis de Energías Renovables",
-        tipo: "nacional",
-    },
-    {
-        reunion: "Reunión B",
-        ciudad: "Madrid",
-        pais: "España",
-        fecha: "2024-02-20",
-        trabajo: "Investigación en Nanomateriales",
-        tipo: "internacional",
-    },
-    {
-        reunion: "Reunión C",
-        ciudad: "Córdoba",
-        pais: "Argentina",
-        fecha: "2024-03-12",
-        trabajo: "Desarrollo Agroindustrial",
-        tipo: "nacional",
-    },
-    {
-        reunion: "Reunión D",
-        ciudad: "París",
-        pais: "Francia",
-        fecha: "2024-04-01",
-        trabajo: "Estudio de Baterías de Litio",
-        tipo: "internacional",
-    },
-];
+import ModalEliminar from "../components/modalEliminar";
+import ModalVerTrabajo from "../components/modalVerTrabajo";
 
 export default function TrabajosPage() {
-    const [openModalTrabajo, setOpenModalTrabajo] = useState(false);
+    const [modalDatos, setModalDatos] = useState(false);
+    const [editInitialData, setEditInitialData] = useState<any | null>(null);
+    const [editId, setEditId] = useState<number | null>(null);
+    const [openEliminar, setOpenEliminar] = useState(false);
+    const [trabajoSeleccionado, setTrabajoSeleccionado] = useState<any | null>(null);
+    const [openVer, setOpenVer] = useState(false);
+    const [verTrabajo, setVerTrabajo] = useState<any | null>(null);
     const [modoGlobal, setModoGlobal] = useState(false); // false=nacional 🇦🇷 / true=global 🌍
     const [busqueda, setBusqueda] = useState("");
 
-    // Filtra por nacional / internacional
-    const filtrados = trabajosDemo.filter((t) =>
-        modoGlobal ? t.tipo === "internacional" : t.tipo === "nacional"
-    );
+    // Estado de trabajos traídos desde la API
+    const [trabajos, setTrabajos] = useState<any[]>([]);
+    const [loadingTrabajos, setLoadingTrabajos] = useState(false);
+    const [errorTrabajos, setErrorTrabajos] = useState<string | null>(null);
 
-    // Filtra por texto del buscador
-    const trabajosFinal = filtrados.filter((t) =>
-        t.trabajo.toLowerCase().includes(busqueda.toLowerCase())
-    );
+    const fetchTrabajos = async () => {
+        try {
+            setErrorTrabajos(null);
+            setLoadingTrabajos(true);
+            const res = await fetch('/api/trabajo');
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                setErrorTrabajos(data.error || data.message || 'Error al obtener trabajos');
+                setTrabajos([]);
+            } else {
+                setTrabajos(Array.isArray(data.data) ? data.data : []);
+            }
+        } catch (e: any) {
+            setErrorTrabajos(e.message || 'Error en la petición');
+            setTrabajos([]);
+        } finally {
+            setLoadingTrabajos(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTrabajos();
+    }, []);
+
+    // Filtrado por modo (nacional/internacional) y búsqueda
+    const filtrados = trabajos.filter((t) => {
+        // Usar el campo `reunion_tipo` que trae la consulta ('NACIONAL'|'INTERNACIONAL')
+        const tipo = t.reunion_tipo === 'INTERNACIONAL' ? 'internacional' : 'nacional';
+        return modoGlobal ? tipo === 'internacional' : tipo === 'nacional';
+    });
+
+    const trabajosFinal = filtrados.filter((t) => (t.titulo || '').toLowerCase().includes(busqueda.toLowerCase()));
+
+    const formatDateShort = (d: any) => {
+        if (!d) return '-';
+        const date = new Date(d);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
 
     return (
         <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
@@ -112,7 +119,7 @@ export default function TrabajosPage() {
 
                         {/* Botón de añadir */}
                         <button
-                            onClick={() => setOpenModalTrabajo(true)}
+                            onClick={() => setModalDatos(true)}
                             className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] hover:bg-[#00b197]"
                         >
                             + Añadir Trabajo
@@ -136,7 +143,9 @@ export default function TrabajosPage() {
                     </div>
 
                     {/* FILAS */}
-                    {trabajosFinal.length > 0 ? (
+                    {loadingTrabajos ? (
+                        <div className="text-center py-6 text-gray-500">Cargando trabajos...</div>
+                    ) : trabajosFinal.length > 0 ? (
                         trabajosFinal.map((t, i) => (
                             <div
                                 key={i}
@@ -144,39 +153,35 @@ export default function TrabajosPage() {
                                     }`}
                             >
                                 <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                                    {t.reunion}
+                                    {t.reunion || t.reunion_id || '-'}
                                 </div>
 
                                 <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                                    {modoGlobal ? t.pais : t.ciudad}
+                                    {modoGlobal ? (t.pais || '-') : (t.ciudad || '-')}
                                 </div>
 
                                 <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                                    {t.fecha}
+                                    {formatDateShort(t.fecha_presentacion || t.fecha_creacion)}
                                 </div>
 
                                 <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                                    {t.trabajo}
+                                    {t.titulo || '-'}
                                 </div>
 
                                 {/* ACCIONES */}
                                 <div className="px-4 py-4 flex items-center gap-4">
 
-                                    {/* Ver */}
-                                    <button
-                                        onClick={() => alert(`Ver trabajo: ${t.trabajo}`)}
-                                        className="text-[#00c9a7] hover:text-[#009e84] text-xl"
-                                    >
-                                        👁️
-                                    </button>
+                                        {/* Ver */}
+                                                    <HiOutlineEye
+                                                        onClick={() => { setVerTrabajo(t); setOpenVer(true); }}
+                                                        className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
+                                                    />
 
-                                    {/* Eliminar */}
-                                    <button
-                                        onClick={() => alert(`Eliminar trabajo: ${t.trabajo}`)}
-                                        className="text-red-500 hover:text-red-700 text-xl"
-                                    >
-                                        🗑️
-                                    </button>
+                                        {/* Eliminar (icono igual que en Usuarios) */}
+                                        <HiOutlineTrash
+                                            onClick={() => { setTrabajoSeleccionado(t); setOpenEliminar(true); }}
+                                            className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
+                                        />
 
                                 </div>
                             </div>
@@ -195,14 +200,62 @@ export default function TrabajosPage() {
                     <span className="px-3 py-1 rounded bg-[#27333d] text-white">1</span>
                     <button className="px-2 py-1 hover:bg-gray-100 rounded">→</button>
                 </div>
-                {openModalTrabajo && (
-                    <ModalTrabajo
-                        open={openModalTrabajo}
-                        modoInicial={modoGlobal ? "internacional" : "nacional"}
-                        onClose={() => setOpenModalTrabajo(false)}
-                        onSave={() => console.log("Guardar trabajo")}
-                    />
+                {modalDatos && (
+                        <ModalTrabajo
+                            open={modalDatos}
+                            modoInicial={modoGlobal ? "internacional" : "nacional"}
+                            initialData={editInitialData || undefined}
+                            editId={editId}
+                            onClose={() => { setModalDatos(false); setEditInitialData(null); setEditId(null); }}
+                            onSave={(data: any) => {
+                                // si la creación/edición fue exitosa, refrescar la lista
+                                if (data?.success) fetchTrabajos();
+                                else fetchTrabajos();
+                                setEditInitialData(null);
+                                setEditId(null);
+                            }}
+                        />
                 )}
+
+                {/* Modal eliminar */}
+                <ModalEliminar
+                    open={openEliminar}
+                    onClose={() => { setOpenEliminar(false); setTrabajoSeleccionado(null); }}
+                    texto={`¿Seguro que querés eliminar el trabajo "${trabajoSeleccionado?.titulo || ''}"?`}
+                    onConfirm={async () => {
+                        if (!trabajoSeleccionado?.id) { setOpenEliminar(false); return; }
+                        try {
+                            const res = await fetch(`/api/trabajo/${trabajoSeleccionado.id}`, { method: 'DELETE', credentials: 'same-origin' });
+                            const data = await res.json();
+                            if (res.ok && data.success) {
+                                // refrescar lista
+                                await fetchTrabajos();
+                            } else {
+                                alert(data.error || data.message || 'No se pudo eliminar');
+                            }
+                        } catch (e: any) {
+                            alert(e.message || 'Error en la petición');
+                        } finally {
+                            setOpenEliminar(false);
+                            setTrabajoSeleccionado(null);
+                        }
+                    }}
+                />
+
+                {/* Modal ver trabajo */}
+                <ModalVerTrabajo
+                    open={openVer}
+                    trabajo={verTrabajo}
+                    onClose={() => { setOpenVer(false); setVerTrabajo(null); }}
+                    onEdit={(t: any) => {
+                        // abrir modal de edición prellenado
+                        setOpenVer(false);
+                        setVerTrabajo(null);
+                        setEditInitialData(t);
+                        setEditId(t?.id ?? null);
+                        setModalDatos(true);
+                    }}
+                />
 
             </main>
         </div>

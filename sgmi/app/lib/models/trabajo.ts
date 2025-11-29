@@ -20,10 +20,18 @@ export class TrabajoModel {
   }
 
   static async findAll(grupoId?: number) {
-    let q = 'SELECT * FROM trabajos_congresos';
+    // Traer trabajos junto con datos de la reunión (nombre, ciudad, tipo, pais) y expositor
+    let q = `SELECT tc.*, r.nombre AS reunion, r.ciudad AS ciudad, r.tipo AS reunion_tipo, r.pais AS pais,
+            p.nombre AS expositor_nombre
+         FROM trabajos_congresos tc
+         LEFT JOIN reuniones r ON tc.reunion_id = r.id
+         LEFT JOIN personal p ON tc.expositor_id = p.id`;
     const params: any[] = [];
-    if (grupoId) { q += ' WHERE grupo_id = $1'; params.push(grupoId); }
-    q += ' ORDER BY fecha_creacion DESC';
+    if (grupoId) {
+      q += ' WHERE tc.grupo_id = $1';
+      params.push(grupoId);
+    }
+    q += ' ORDER BY tc.fecha_creacion DESC';
     const r = await pool.query(q, params);
     return r.rows;
   }

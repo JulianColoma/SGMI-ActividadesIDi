@@ -1,15 +1,112 @@
 import { TrabajoModel, ITrabajo } from '../models/trabajo';
+import { ReunionModel } from '../models/reunion';
+import { PersonalModel } from '../models/personal';
 
 export interface ApiResponse<T> { success: boolean; data?: T; error?: string; message?: string }
 
 export class TrabajoController {
-  static async create(role: string, payload: ITrabajo) { if (role !== 'admin') return { success: false, error: 'No autorizado' }; try { const r = await TrabajoModel.create(payload); return { success: true, data: r, message: 'Trabajo creado' } } catch (e: any) { return { success: false, error: e.message } } }
+  static async create(role: string, payload: any) {
+    if (role !== 'admin') return { success: false, error: 'No autorizado' };
+
+    try {
+      // Si el cliente envía nombreReunion/ciudad en lugar de reunion_id, intentar resolver o crear la reunión
+      if (!payload.reunion_id && payload.nombreReunion) {
+        const nombre = String(payload.nombreReunion).trim();
+        const ciudad = payload.ciudad ? String(payload.ciudad).trim() : null;
+        const pais = payload.pais ? String(payload.pais).trim() : null;
+
+        let reunion = await ReunionModel.findByNameCity(nombre, ciudad);
+        if (!reunion) {
+          // Mapear tipo (cliente envía 'nacional'|'internacional') a formato DB
+          const tipo = payload.tipo && String(payload.tipo).toLowerCase() === 'internacional' ? 'INTERNACIONAL' : 'NACIONAL';
+          reunion = await ReunionModel.create({ nombre, ciudad, tipo, pais });
+        } else {
+          // Si ya existe pero el cliente envió tipo/pais, intentar actualizar la reunión existente
+          const tipo = payload.tipo && String(payload.tipo).toLowerCase() === 'internacional' ? 'INTERNACIONAL' : 'NACIONAL';
+          await ReunionModel.update(reunion.id, { tipo, pais, ciudad, nombre });
+        }
+
+        payload.reunion_id = reunion.id;
+      }
+
+      const cleanPayload: ITrabajo = {
+        titulo: payload.titulo,
+        resumen: payload.resumen || undefined,
+        expositor_id: payload.expositor_id || null,
+        reunion_id: payload.reunion_id || null,
+        grupo_id: payload.grupo_id || null,
+        fecha_presentacion: payload.fecha_presentacion || null,
+      };
+
+      // Si el cliente envía un nombre de expositor, buscar o crear
+      if (!cleanPayload.expositor_id && payload.expositor) {
+        const nombreCompleto = String(payload.expositor).trim();
+        let persona = await PersonalModel.findByName(nombreCompleto);
+        if (!persona) {
+          persona = await PersonalModel.create({ nombre: nombreCompleto });
+        }
+        cleanPayload.expositor_id = persona.id;
+      }
+
+      const r = await TrabajoModel.create(cleanPayload);
+      return { success: true, data: r, message: 'Trabajo creado' };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
 
   static async getAll(grupoId?: number) { try { const data = await TrabajoModel.findAll(grupoId); return { success: true, data } } catch (e: any) { return { success: false, error: e.message } } }
 
   static async getById(id: number) { try { const item = await TrabajoModel.findById(id); if (!item) return { success: false, error: 'No encontrado' }; return { success: true, data: item } } catch (e: any) { return { success: false, error: e.message } } }
 
-  static async update(id: number, role: string, payload: Partial<ITrabajo>) { if (role !== 'admin') return { success: false, error: 'No autorizado' }; try { const updated = await TrabajoModel.update(id, payload); if (!updated) return { success: false, error: 'No se pudo actualizar' }; return { success: true, data: updated } } catch (e: any) { return { success: false, error: e.message } } }
+  static async update(id: number, role: string, payload: any) {
+    if (role !== 'admin') return { success: false, error: 'No autorizado' };
+    try {
+      // Si el cliente envía nombreReunion/ciudad en lugar de reunion_id, intentar resolver o crear la reunión
+      if (!payload.reunion_id && payload.nombreReunion) {
+        const nombre = String(payload.nombreReunion).trim();
+        const ciudad = payload.ciudad ? String(payload.ciudad).trim() : null;
+        const pais = payload.pais ? String(payload.pais).trim() : null;
+
+        let reunion = await ReunionModel.findByNameCity(nombre, ciudad);
+        if (!reunion) {
+          const tipo = payload.tipo && String(payload.tipo).toLowerCase() === 'internacional' ? 'INTERNACIONAL' : 'NACIONAL';
+          reunion = await ReunionModel.create({ nombre, ciudad, tipo, pais });
+        } else {
+          // Si ya existe la reunión, actualizar sus datos si el payload trae cambios
+          const tipo = payload.tipo && String(payload.tipo).toLowerCase() === 'internacional' ? 'INTERNACIONAL' : 'NACIONAL';
+          await ReunionModel.update(reunion.id, { tipo, pais, ciudad, nombre });
+        }
+
+        payload.reunion_id = reunion.id;
+      }
+
+      const cleanPayload: Partial<ITrabajo> = {
+        titulo: payload.titulo !== undefined ? payload.titulo : undefined,
+        resumen: payload.resumen !== undefined ? payload.resumen : undefined,
+        expositor_id: payload.expositor_id !== undefined ? payload.expositor_id : undefined,
+        reunion_id: payload.reunion_id !== undefined ? payload.reunion_id : undefined,
+        grupo_id: payload.grupo_id !== undefined ? payload.grupo_id : undefined,
+        fecha_presentacion: payload.fecha_presentacion !== undefined ? payload.fecha_presentacion : undefined,
+      };
+
+      // Si el cliente envía un nombre de expositor, buscar o crear
+      if ((!cleanPayload.expositor_id || cleanPayload.expositor_id === null) && payload.expositor) {
+        const nombreCompleto = String(payload.expositor).trim();
+        let persona = await PersonalModel.findByName(nombreCompleto);
+        if (!persona) {
+          persona = await PersonalModel.create({ nombre: nombreCompleto });
+        }
+        cleanPayload.expositor_id = persona.id;
+      }
+
+      const updated = await TrabajoModel.update(id, cleanPayload);
+      if (!updated) return { success: false, error: 'No se pudo actualizar' };
+      return { success: true, data: updated };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
 
   static async delete(id: number, role: string) { if (role !== 'admin') return { success: false, error: 'No autorizado' }; try { const ok = await TrabajoModel.delete(id); if (!ok) return { success: false, error: 'No encontrado' }; return { success: true, message: 'Eliminado' } } catch (e: any) { return { success: false, error: e.message } } }
 }
