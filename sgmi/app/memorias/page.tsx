@@ -98,16 +98,17 @@ function MemoriasPage() {
   );
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
+
       <Sidebar />
 
-      <main className="flex-1 px-12 py-8">
-        <div className="flex align-center justify-between">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-8">
-            Gestión de memorias
-          </h1>
-          <UserPill />
-        </div>
+      <main className="flex-1 px-12 py-8 bg-white">
+      <div className="flex align-center justify-between">
+        <h1 className="text-3xl font-semibold text-gray-800 mb-8">
+          Gestión de memorias
+        </h1>
+        <UserPill/>
+      </div>
 
         <input
           placeholder="Buscar grupo..."

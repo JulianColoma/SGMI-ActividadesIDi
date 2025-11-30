@@ -5,10 +5,12 @@ import Sidebar from "../components/sidebar";
 import NewProyecto from "../components/newproyecto";
 import ModalProyectoDatos from "../components/modalProyectorsDatos";
 import ModalVerProyecto from "../components/modalVerProyecto";
-import ModalEliminar from "../components/modalEliminar";
 import UserPill from "../components/userPill";
 import { withAuth } from "../withAuth";
 import { useEffect, useState } from "react";
+import ErrorModal from "../components/alerts/ErrorModal";
+import ConfirmModal from "../components/alerts/ConfrimModal";
+
 
 function ProyectosPage() {
   const [modalDatos, setModalDatos] = useState(false);
@@ -27,13 +29,19 @@ function ProyectosPage() {
     // default to grupo 1 for now so validation doesn't fail when empty
     grupo_id: 1,
   });
+  // Modal de error
+  const [showError, setShowError] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorDesc, setErrorDesc] = useState("");
 
+  // Modal confirmar eliminación (reemplaza ModalEliminar)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
   const [modalVer, setModalVer] = useState(false);
-  const [modalEliminar, setModalEliminar] = useState(false);
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState<any | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
 
-  
+
   type Proyecto = {
     id: number;
     nombre: string;
@@ -42,6 +50,12 @@ function ProyectosPage() {
   };
 
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+
+  const proyectosFiltrados = proyectos.filter((p) =>
+    (p.nombre || "").toLowerCase().includes(busqueda.toLowerCase()) ||
+    (p.codigo || "").toLowerCase().includes(busqueda.toLowerCase()) ||
+    (p.tipo || "").toLowerCase().includes(busqueda.toLowerCase())
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +121,9 @@ function ProyectosPage() {
 
       if (!res.ok || !json.success) {
         const msg = json?.error || `Error en servidor (${res.status})`;
-        alert("Error: " + msg);
+        setErrorTitle("Error al guardar proyecto");
+        setErrorDesc(msg);
+        setShowError(true);
         return;
       }
 
@@ -140,10 +156,13 @@ function ProyectosPage() {
     } catch (e: any) {
       alert(e?.message || 'Error al eliminar');
     } finally {
-      setModalEliminar(false);
+      setShowConfirmDelete(false);
       setProyectoSeleccionado(null);
     }
+
   }
+
+
 
   function handleEdit(proyecto: any) {
     // set edit id and prefill formData with proyecto values & open first modal
@@ -162,7 +181,7 @@ function ProyectosPage() {
     });
     // Close view modal and open the first modal to edit
     setModalVer(false);
-    setModalEliminar(false);
+    setShowConfirmDelete(false)
     setModalDatos(true);
   }
 
@@ -187,7 +206,8 @@ function ProyectosPage() {
             <input
               type="text"
               placeholder="Buscar proyecto"
-              className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
             />
           </div>
 
@@ -200,14 +220,12 @@ function ProyectosPage() {
         </div>
 
         {/* Tabla */}
-        <div className="border border-gray-300 rounded-lg overflow-hidden">
+        <div className="border border-gray-300 rounded-lg overflow-hidden w-full">
           {/* Headers */}
           <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
-            <div className="px-4 py-3 border-r border-gray-300">
-              Nombre del Proyecto
-            </div>
+            <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
             <div className="px-4 py-3 border-r border-gray-300">Código</div>
-            <div className="px-4 py-3">Tipo de Proyecto</div>
+            <div className="px-4 py-3 border-r border-gray-300">Tipo de Proyecto</div>
             <div className="px-4 py-3">Acciones</div>
           </div>
 
@@ -225,40 +243,43 @@ function ProyectosPage() {
           )}
 
           {/* Filas */}
-          {proyectos.map((p, i) => (
+          {proyectosFiltrados.map((p, i) => (
             <div
               key={p.id}
               className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
             >
-              <div className="px-4 py-4 border-r border-gray-300">
+              <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
                 {p.nombre}
               </div>
-              <div className="px-4 py-4 border-r border-gray-300">
+              <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
                 {p.codigo}
               </div>
-              <div className="px-4 py-4">{p.tipo}</div>
-              <div className="px-4 py-4 flex items-center gap-3">
-                <button
+              <div className="px-4 py-4 border-r border-gray-300 text-gray-700">{p.tipo}</div>
+
+
+              <div className="px-4 py-4 flex items-center gap-4">
+                <HiOutlineEye
                   title="Ver"
                   onClick={() => {
                     setProyectoSeleccionado(p);
                     setModalVer(true);
                   }}
-                  className="text-gray-600 hover:text-gray-900"
+                  className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
                 >
-                  <HiOutlineEye />
-                </button>
 
-                <button
+                </HiOutlineEye>
+
+                <HiOutlineTrash
                   title="Eliminar"
                   onClick={() => {
                     setProyectoSeleccionado(p);
-                    setModalEliminar(true);
+                    setShowConfirmDelete(true);
+
                   }}
-                  className="text-red-500 hover:text-red-700"
+                  className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
                 >
-                  <HiOutlineTrash />
-                </button>
+
+                </HiOutlineTrash>
               </div>
             </div>
           ))}
@@ -302,12 +323,19 @@ function ProyectosPage() {
       />
 
       {/* Modal eliminar */}
-      <ModalEliminar
-        open={modalEliminar}
-        texto={`¿Eliminar proyecto "${proyectoSeleccionado?.nombre ?? ''}"? Esta acción no se puede deshacer.`}
-        onClose={() => { setModalEliminar(false); setProyectoSeleccionado(null); }}
-        onConfirm={() => handleDeleteConfirm()}
+      <ConfirmModal
+        open={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={handleDeleteConfirm}
+        message={`¿Está seguro de eliminar el proyecto "${proyectoSeleccionado?.nombre ?? ""}"?`}
       />
+      <ErrorModal
+        open={showError}
+        onClose={() => setShowError(false)}
+        title={errorTitle}
+        description={errorDesc}
+      />
+
     </div>
   );
 }
