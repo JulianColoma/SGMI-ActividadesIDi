@@ -11,8 +11,8 @@ export interface IMemoria {
 
 export class MemoriaModel {
   static async create(data: IMemoria) {
-    const q = `INSERT INTO memorias (grupo_id, anio, contenido, creado_por) VALUES ($1, $2, $3, $4) RETURNING *`;
-    const r = await pool.query(q, [data.grupo_id, data.anio, data.contenido || null, data.creado_por || null]);
+    const q = `INSERT INTO memorias (grupo_id, anio, contenido) VALUES ($1, $2, $3) RETURNING *`;
+    const r = await pool.query(q, [data.grupo_id, data.anio, data.contenido || null]);
     return r.rows[0];
   }
 
@@ -29,10 +29,8 @@ export class MemoriaModel {
 
   static async update(id: number, data: Partial<IMemoria>) {
     const updates: string[] = []; const params: any[] = []; let idx = 1;
-    if (data.grupo_id !== undefined) { updates.push(`grupo_id = $${idx++}`); params.push(data.grupo_id); }
     if (data.anio !== undefined) { updates.push(`anio = $${idx++}`); params.push(data.anio); }
     if (data.contenido !== undefined) { updates.push(`contenido = $${idx++}`); params.push(data.contenido); }
-    if (data.creado_por !== undefined) { updates.push(`creado_por = $${idx++}`); params.push(data.creado_por); }
     if (!updates.length) return null; params.push(id);
     const q = `UPDATE memorias SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
     const r = await pool.query(q, params); return r.rows.length ? r.rows[0] : null;

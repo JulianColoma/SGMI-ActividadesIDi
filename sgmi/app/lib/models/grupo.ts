@@ -3,10 +3,7 @@ import pool from '../db';
 export interface IGrupo {
   id?: number;
   nombre: string;
-  descripcion?: string;
-  facultad_id?: number | null;
-  fecha_creacion?: Date;
-  estado?: boolean;
+  memorias?: any[];
 }
 
 export class GrupoModel {
@@ -15,16 +12,13 @@ export class GrupoModel {
    */
   static async create(grupo: IGrupo): Promise<IGrupo> {
     const query = `
-      INSERT INTO grupos (nombre, descripcion, facultad_id, estado)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, nombre, descripcion, facultad_id, fecha_creacion, estado
+      INSERT INTO grupos (nombre)
+      VALUES ($1)
+      RETURNING id, nombre
     `;
 
     const result = await pool.query(query, [
-      grupo.nombre,
-      grupo.descripcion || null,
-      grupo.facultad_id || null,
-      grupo.estado !== false
+      grupo.nombre
     ]);
 
     return result.rows[0];
@@ -33,18 +27,32 @@ export class GrupoModel {
   /**
    * Obtener todos los grupos con opción de filtro
    */
-  static async findAll(facultadId?: number): Promise<IGrupo[]> {
-    let query = 'SELECT * FROM grupos';
-    const params: any[] = [];
+  /**
+   * Obtener todos los grupos con sus memorias anidadas
+   */
+  static async findAll(): Promise<IGrupo[]> {
+    // Usamos JSON_AGG para meter las memorias dentro de un array en el mismo SQL
+    const query = `
+      SELECT 
+        g.id, 
+        g.nombre, 
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', m.id, 
+              'anio', m.anio, 
+              'contenido', m.contenido
+            ) ORDER BY m.anio DESC
+          ) FILTER (WHERE m.id IS NOT NULL), 
+          '[]'
+        ) as memorias
+      FROM grupos g
+      LEFT JOIN memorias m ON g.id = m.grupo_id
+      GROUP BY g.id, g.nombre
+      ORDER BY g.id ASC;
+    `;
 
-    if (facultadId) {
-      query += ' WHERE facultad_id = $1';
-      params.push(facultadId);
-    }
-
-    query += ' ORDER BY fecha_creacion DESC';
-
-    const result = await pool.query(query, params);
+    const result = await pool.query(query);
     return result.rows;
   }
 
@@ -62,33 +70,13 @@ export class GrupoModel {
    * Actualizar un grupo
    */
   static async update(id: number, grupo: Partial<IGrupo>): Promise<IGrupo | null> {
-    const updates: string[] = [];
-    const params: any[] = [];
-    let paramCount = 1;
+    const params: any[] = [id, grupo.nombre];
 
-    if (grupo.nombre !== undefined) {
-      updates.push(`nombre = $${paramCount++}`);
-      params.push(grupo.nombre);
-    }
-
-    if (grupo.descripcion !== undefined) {
-      updates.push(`descripcion = $${paramCount++}`);
-      params.push(grupo.descripcion);
-    }
-
-    if (grupo.estado !== undefined) {
-      updates.push(`estado = $${paramCount++}`);
-      params.push(grupo.estado);
-    }
-
-    if (updates.length === 0) return null;
-
-    params.push(id);
     const query = `
       UPDATE grupos
-      SET ${updates.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING id, nombre, descripcion, facultad_id, fecha_creacion, estado
+      SET nombre=$2
+      WHERE id = $1
+      RETURNING id, nombre
     `;
 
     const result = await pool.query(query, params);

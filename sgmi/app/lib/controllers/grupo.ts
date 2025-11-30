@@ -13,20 +13,11 @@ export class GrupoController {
    */
   static async create(
     nombre: string,
-    role: string,
-    descripcion?: string,
-    facultad_id?: number
   ): Promise<ApiResponse<IGrupo>> {
-    if (role !== 'admin') {
-      return { success: false, error: 'No autorizado' };
-    }
-
+    
     try {
       const grupo = await GrupoModel.create({
         nombre: nombre.trim(),
-        descripcion: descripcion?.trim() || undefined,
-        facultad_id: facultad_id || null,
-        estado: true
       });
 
       return {
@@ -42,10 +33,10 @@ export class GrupoController {
   /**
    * Obtener todos los grupos (todos los roles pueden ver)
    */
-  static async getAll(facultadId?: number): Promise<ApiResponse<IGrupo[]>> {
+  static async getAll(): Promise<ApiResponse<IGrupo[]>> {
     try {
-      const grupos = await GrupoModel.findAll(facultadId);
-      return { success: true, data: grupos, message: `Se encontraron ${grupos.length} grupos` };
+      const grupos = await GrupoModel.findAll();
+      return { success: true, data: grupos };
     } catch (error: any) {
       return { success: false, error: error.message || 'Error al obtener los grupos' };
     }
@@ -74,12 +65,9 @@ export class GrupoController {
    */
   static async update(
     grupoId: number,
-    role: string,
     datos: Partial<IGrupo>
   ): Promise<ApiResponse<IGrupo>> {
-    if (role !== 'admin') {
-      return { success: false, error: 'No autorizado' };
-    }
+    
 
     try {
       if (!grupoId || grupoId <= 0) return { success: false, error: 'ID de grupo inválido' };

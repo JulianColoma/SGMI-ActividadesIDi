@@ -87,6 +87,7 @@ function MemoriaDetallePage() {
 
                     <UserPill/>
                 </div>
+                <p className="text-l font-semibold text-gray-800 mt-2 mb-5">aca va el contenido de la memoria pa</p>
 
                 {/* TABS */}
                 <div className="flex gap-8 border-b border-gray-300 mb-8">

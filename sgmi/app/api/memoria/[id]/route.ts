@@ -12,15 +12,4 @@ export async function GET(request: NextRequest) {
   } catch (e: any) { return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 }); }
 }
 
-export async function POST(request: NextRequest) {
-  try {
-  const auth = await getAuth(request);
-  const role = auth?.role ?? 'user';
-  const userId = auth?.id;
-    const body = await request.json();
-    try { await createMemoriaSchema.parseAsync(body); } catch (err: any) { return NextResponse.json({ success: false, error: err.errors || err.message }, { status: 400 }); }
-    const payload = { ...body, creado_por: userId };
-    const res = await MemoriaController.create(role, payload as any);
-    return NextResponse.json(res, { status: res.success ? 201 : res.error === 'No autorizado' ? 403 : 400 });
-  } catch (e: any) { return NextResponse.json({ success: false, error: e.message }, { status: 500 }); }
-}
+

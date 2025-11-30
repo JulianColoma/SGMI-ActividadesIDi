@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 interface ModalAddMemoriaProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
+  onSave: (data: { anio: number; contenido: string }) => void; // Definimos el tipo de dato que devuelve
 }
 
 export default function ModalAddMemoria({ open, onClose, onSave }: ModalAddMemoriaProps) {
@@ -31,7 +31,7 @@ export default function ModalAddMemoria({ open, onClose, onSave }: ModalAddMemor
       <div className="bg-white w-[600px] rounded-2xl p-6 shadow-xl relative">
 
         <button
-          className="absolute top-3 right-3 text-2xl"
+          className="absolute top-3 right-3 text-2xl text-gray-500 hover:text-gray-700"
           onClick={onClose}
         >
           ✕
@@ -45,12 +45,12 @@ export default function ModalAddMemoria({ open, onClose, onSave }: ModalAddMemor
 
           {/* Campo Año */}
           <div>
-            <label className="font-medium">Año</label>
+            <label className="font-medium text-gray-700">Año</label>
             <input
               type="number"
               min="1900"
               max="2100"
-              className="w-full border rounded-md px-3 py-2 mt-1"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
               value={anio}
               onChange={(e) => setAnio(parseInt(e.target.value))}
             />
@@ -58,10 +58,10 @@ export default function ModalAddMemoria({ open, onClose, onSave }: ModalAddMemor
 
           {/* Campo Contenido */}
           <div>
-            <label className="font-medium">Resumen / Contenido</label>
+            <label className="font-medium text-gray-700">Resumen / Contenido</label>
             <textarea
               rows={5}
-              className="w-full border rounded-md px-3 py-2 mt-1 resize-none"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1 resize-none focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
               value={contenido}
               onChange={(e) => setContenido(e.target.value)}
               placeholder="Describa brevemente las actividades del año..."
@@ -73,7 +73,7 @@ export default function ModalAddMemoria({ open, onClose, onSave }: ModalAddMemor
         <div className="flex justify-end mt-6">
           <button
             onClick={handleSave}
-            className="px-6 py-2 bg-[#00c9a7] text-white rounded-md hover:bg-[#00b197]"
+            className="px-6 py-2 bg-[#00c9a7] text-white rounded-md hover:bg-[#00b092] font-medium transition-colors"
           >
             Guardar
           </button>
