@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GrupoController } from '@/app/lib/controllers/grupo';
-import { updateGrupoSchema } from '@/app/lib/schemas/grupo';
+import { GrupoSchema } from '@/app/lib/schemas/grupo';
 import { getAuth } from '@/app/lib/requestAuth';
 
 /*
@@ -42,12 +42,12 @@ export async function PUT(
 
     const body = await request.json();
     try {
-      await updateGrupoSchema.parseAsync(body);
+      await GrupoSchema.parseAsync(body);
     } catch (e: any) {
       return NextResponse.json({ success: false, error: e.errors || e.message }, { status: 400 });
     }
 
-    const response = await GrupoController.update(parseInt(id), role, body);
+    const response = await GrupoController.update(parseInt(id),  body);
 
     return NextResponse.json(response, { status: response.success ? 200 : response.error === 'No autorizado' ? 403 : 400 });
   } catch (error: any) {
@@ -70,11 +70,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-  const { id } = await params;
-  const auth = await getAuth(request);
-  const role = auth?.role ?? 'user';
-
-    const response = await GrupoController.delete(parseInt(id), role);
+    const { id } = await params;
+    const response = await GrupoController.delete(parseInt(id));
 
     return NextResponse.json(response, { status: response.success ? 200 : response.error === 'No autorizado' ? 403 : 404 });
   } catch (error: any) {

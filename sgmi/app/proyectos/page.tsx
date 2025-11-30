@@ -64,16 +64,15 @@ function ProyectosPage() {
     setLoading(true);
     setError(null);
     try {
-      // Nota: la ruta del API es /api/investigacion (singular) — había un typo en plural
-      const token = localStorage.getItem("token");
+    
       const res = await fetch("/api/investigacion?grupo_id=1", {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        credentials: "include",
       });
 
       if (!res.ok) {
-        // intenta parsear la respuesta JSON si existe
+        
         let body: any = null;
-        try { body = await res.json(); } catch { /* ignore */ }
+        try { body = await res.json(); } catch { console.log('No JSON body'); }
         throw new Error(body?.error || `Error HTTP ${res.status}`);
       }
 
@@ -97,23 +96,19 @@ function ProyectosPage() {
 
   async function handleSave(dataFinal: Record<string, any>) {
     try {
-      const token = localStorage.getItem("token");
 
       // Quick client-side validation for required fields
       if (!dataFinal.tipo || !dataFinal.nombre || !dataFinal.fecha_inicio) {
         alert('Completa los campos obligatorios: tipo, nombre y fecha de inicio.');
         return;
       }
-
       // Si hay editId, hacemos PUT a /api/investigacion/:id en lugar de POST
       const isEditing = !!editId;
-      const headers: any = { 'Content-Type': 'application/json' };
-      if (token) headers.Authorization = `Bearer ${token}`;
 
       const res = await fetch(isEditing ? `/api/investigacion/${editId}` : '/api/investigacion', {
         method: isEditing ? 'PUT' : 'POST',
-        credentials: 'include', // send httpOnly cookie
-        headers,
+        credentials: 'include', 
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataFinal),
       });
 
@@ -141,11 +136,7 @@ function ProyectosPage() {
     if (!proyectoSeleccionado) return;
     try {
       const id = proyectoSeleccionado.id;
-      const token = localStorage.getItem('token');
-      const headers: any = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-
-      const res = await fetch(`/api/investigacion/${id}`, { method: 'DELETE', credentials: 'include', headers });
+      const res = await fetch(`/api/investigacion/${id}`, { method: 'DELETE', credentials: 'include' });
       const json = await res.json();
       if (!res.ok || !json.success) {
         alert(json.error || json.message || `No se pudo eliminar (code ${res.status})`);

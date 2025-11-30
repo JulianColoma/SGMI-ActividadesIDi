@@ -17,14 +17,6 @@ export class MemoriaController {
     }
   }
 
-  static async getAll(grupoId?: number) {
-    try {
-      const data = await MemoriaModel.findAll(grupoId);
-      return { success: true, data };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  }
 
   static async getById(id: number) {
     try {
@@ -36,19 +28,7 @@ export class MemoriaController {
     }
   }
 
-  static async update(id: number, role: string, payload: Partial<IMemoria>) {
-    if (role !== "admin") return { success: false, error: "No autorizado" };
-    try {
-      const updated = await MemoriaModel.update(id, payload);
-      if (!updated) return { success: false, error: "No se pudo actualizar" };
-      return { success: true, data: updated };
-    } catch (e: any) {
-      return { success: false, error: e.message };
-    }
-  }
-
-  static async delete(id: number, role: string) {
-    if (role !== "admin") return { success: false, error: "No autorizado" };
+  static async delete(id: number) {
     try {
       const ok = await MemoriaModel.delete(id);
       if (!ok) return { success: false, error: "No encontrado" };

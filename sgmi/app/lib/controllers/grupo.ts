@@ -84,9 +84,8 @@ export class GrupoController {
   /**
    * Eliminar un grupo (solo admin)
    */
-  static async delete(grupoId: number, role: string): Promise<ApiResponse<null>> {
-    if (role !== 'admin') return { success: false, error: 'No autorizado' };
-
+  static async delete(grupoId: number): Promise<ApiResponse<null>> {
+    
     try {
       if (!grupoId || grupoId <= 0) return { success: false, error: 'ID de grupo inválido' };
 
