@@ -9,16 +9,21 @@ import {
   HiOutlineEye,
 } from "react-icons/hi";
 import ModalTrabajo from "../components/modalTrabajo";
-import ModalEliminar from "../components/modalEliminar";
 import ModalVerTrabajo from "../components/modalVerTrabajo";
 import UserPill from "../components/userPill";
 import { withAuth } from "../withAuth";
+import ErrorModal from "../components/alerts/ErrorModal";
+import ConfirmModal from "../components/alerts/ConfrimModal";
 
 function TrabajosPage() {
+  const [showError, setShowError] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorDesc, setErrorDesc] = useState("");
+  // Modal confirmar eliminación (reemplaza ModalEliminar)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [modalDatos, setModalDatos] = useState(false);
   const [editInitialData, setEditInitialData] = useState<any | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
-  const [openEliminar, setOpenEliminar] = useState(false);
   const [trabajoSeleccionado, setTrabajoSeleccionado] = useState<any | null>(
     null
   );
@@ -69,9 +74,11 @@ function TrabajosPage() {
     return modoGlobal ? tipo === "internacional" : tipo === "nacional";
   });
 
-  const trabajosFinal = filtrados.filter((t) =>
-    (t.titulo || "").toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const trabajosFinal = filtrados.filter((t) => {
+    const q = busqueda.toLowerCase().trim();
+    return (t.titulo || "").toLowerCase().includes(q);
+  });
+
 
   const formatDateShort = (d: any) => {
     if (!d) return "-";
@@ -109,7 +116,7 @@ function TrabajosPage() {
               placeholder="Buscar trabajo"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
+              className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
             />
           </div>
 
@@ -158,12 +165,12 @@ function TrabajosPage() {
         <div className="border border-gray-300 rounded-lg overflow-hidden">
           {/* ENCABEZADOS */}
           <div className="grid grid-cols-5 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
-            <div className="px-4 py-3 border-r border-gray-300">Reunión</div>
+            <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
             <div className="px-4 py-3 border-r border-gray-300">
               {modoGlobal ? "País" : "Ciudad"}
             </div>
             <div className="px-4 py-3 border-r border-gray-300">Fecha</div>
-            <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
+            <div className="px-4 py-3 border-r border-gray-300">Reunión</div>
             <div className="px-4 py-3">Acciones</div>
           </div>
 
@@ -176,12 +183,11 @@ function TrabajosPage() {
             trabajosFinal.map((t, i) => (
               <div
                 key={i}
-                className={`grid grid-cols-5 ${
-                  i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"
-                }`}
+                className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"
+                  }`}
               >
                 <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                  {t.reunion || t.reunion_id || "-"}
+                  {t.titulo || "-"}
                 </div>
 
                 <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
@@ -193,7 +199,7 @@ function TrabajosPage() {
                 </div>
 
                 <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                  {t.titulo || "-"}
+                  {t.reunion || t.reunion_id || "-"}
                 </div>
 
                 {/* ACCIONES */}
@@ -211,7 +217,7 @@ function TrabajosPage() {
                   <HiOutlineTrash
                     onClick={() => {
                       setTrabajoSeleccionado(t);
-                      setOpenEliminar(true);
+                      setShowConfirmDelete(true);
                     }}
                     className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
                   />
@@ -253,40 +259,51 @@ function TrabajosPage() {
         )}
 
         {/* Modal eliminar */}
-        <ModalEliminar
-          open={openEliminar}
+        <ConfirmModal
+          open={showConfirmDelete}
           onClose={() => {
-            setOpenEliminar(false);
+            setShowConfirmDelete(false);
             setTrabajoSeleccionado(null);
           }}
-          texto={`¿Seguro que querés eliminar el trabajo "${
-            trabajoSeleccionado?.titulo || ""
-          }"?`}
           onConfirm={async () => {
             if (!trabajoSeleccionado?.id) {
-              setOpenEliminar(false);
+              setShowConfirmDelete(false);
               return;
             }
+
             try {
-              const res = await fetch(
-                `/api/trabajo/${trabajoSeleccionado.id}`,
-                { method: "DELETE", credentials: "include" }
-              );
+              const res = await fetch(`/api/trabajo/${trabajoSeleccionado.id}`, {
+                method: "DELETE",
+                credentials: "include",
+              });
+
               const data = await res.json();
+
               if (res.ok && data.success) {
-                // refrescar lista
                 await fetchTrabajos();
               } else {
-                alert(data.error || data.message || "No se pudo eliminar");
+                setErrorTitle("No se pudo eliminar");
+                setErrorDesc(data.error || data.message || "Intente nuevamente");
+                setShowError(true);
               }
             } catch (e: any) {
-              alert(e.message || "Error en la petición");
+              setErrorTitle("Error en el servidor");
+              setErrorDesc(e.message || "Error desconocido");
+              setShowError(true);
             } finally {
-              setOpenEliminar(false);
+              setShowConfirmDelete(false);
               setTrabajoSeleccionado(null);
             }
           }}
+          message={`¿Está seguro de eliminar el trabajo "${trabajoSeleccionado?.titulo ?? ""}"?`}
         />
+        <ErrorModal
+          open={showError}
+          onClose={() => setShowError(false)}
+          title={errorTitle}
+          description={errorDesc}
+        />
+
 
         {/* Modal ver trabajo */}
         <ModalVerTrabajo
