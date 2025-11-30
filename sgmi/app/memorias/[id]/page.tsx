@@ -2,7 +2,7 @@
 
 import Sidebar from "@/app/components/sidebar";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import {
     HiOutlineSearch,
@@ -11,83 +11,242 @@ import {
 } from "react-icons/hi";
 
 import ModalTrabajo from "@/app/components/modalTrabajo";
-import ModalProyectoDatos from "@/app/components/modalProyectorsDatos";
+import ModalProyectoDatos from "@/app/components/modalProyectorsDatos"; 
 import NewProyecto from "@/app/components/newproyecto";
+import ModalVerTrabajo from "@/app/components/modalVerTrabajo";
+import ModalVerProyecto from "@/app/components/modalVerProyecto";
 import UserPill from "@/app/components/userPill";
 import { withAuth } from "@/app/withAuth";
 
 function MemoriaDetallePage() {
     const { id } = useParams();
 
+    // DATOS DE LA API
+    const [memoria, setMemoria] = useState<any>(null);
+    const [trabajos, setTrabajos] = useState<any[]>([]);
+    const [proyectos, setProyectos] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
     // TABS
     const [tab, setTab] = useState<"trabajos" | "proyectos">("trabajos");
-    // Buscador proyectos
+    
+    // FILTROS Y ESTADOS
     const [busquedaProyecto, setBusquedaProyecto] = useState("");
-
-    // Estado nacional/internacional
+    const [busquedaTrabajo, setBusquedaTrabajo] = useState("");
     const [modoGlobal, setModoGlobal] = useState(false); // false = nacional, true = internacional
 
-    // Buscador trabajos
-    const [busqueda, setBusqueda] = useState("");
-
-    // MODALES
+    // MODALES - ESTADOS DE CONTROL
     const [openTrabajo, setOpenTrabajo] = useState(false);
     const [modalProyectoDatos, setModalProyectoDatos] = useState(false);
     const [modalProyectoDetalles, setModalProyectoDetalles] = useState(false);
+    
+    // DATOS PARA EDICIÓN
+    const [editTrabajoData, setEditTrabajoData] = useState<any>(null); // Datos para editar trabajo
+    const [editProyectoData, setEditProyectoData] = useState<any>(null); // Datos completos del proyecto a editar
+    const [proyectoDataTemp, setProyectoDataTemp] = useState<any>({});   // Datos temporales entre paso 1 y 2 de proyecto
 
-    // DATOS
-    const [trabajos, setTrabajos] = useState([
-        {
-            nombreReunion: "Congreso Nacional",
-            ciudad: "Buenos Aires",
-            fecha: "2025-03-12",
-            titulo: "Análisis de polímeros",
-            expositor: "Juan Pérez",
-            pais: "Argentina",
-        },
-        {
-            nombreReunion: "Congreso Internacional",
-            ciudad: "Madrid",
-            fecha: "2026-04-20",
-            titulo: "Nanoestructuras",
-            expositor: "Laura Gómez",
-            pais: "España",
-        },
-    ]);
+    // MODALES - VISUALIZACIÓN
+    const [verTrabajo, setVerTrabajo] = useState<any | null>(null);
+    const [verProyecto, setVerProyecto] = useState<any | null>(null);
 
-    const [proyectos, setProyectos] = useState([
-        { nombre: "Proyecto Energía Solar", codigo: "001", tipo: "Energía" },
-        { nombre: "Proyecto Nanotech", codigo: "002", tipo: "Tecnología" },
-    ]);
+    // --- FETCH DE DATOS ---
+    const fetchMemoria = async () => {
+        if (!id) return;
+        try {
+            setLoading(true);
+            const res = await fetch(`/api/memoria/${id}`);
+            const data = await res.json();
 
-    // GUARDAR TRABAJO
-    function guardarTrabajo(data: any) {
-        setTrabajos([...trabajos, data]);
-        setOpenTrabajo(false);
-    }
+            if (data.success && data.data) {
+                setMemoria(data.data);
+                setTrabajos(data.data.trabajos || []);
+                setProyectos(data.data.proyectos || []);
+            } else {
+                console.error("Error cargando memoria:", data.error);
+            }
+        } catch (error) {
+            console.error("Error de red:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    // GUARDAR PROYECTO
-    function guardarProyecto() {
-        setProyectos([
-            ...proyectos,
-            { nombre: "Proyecto nuevo", codigo: "000", tipo: "General" },
-        ]);
-        setModalProyectoDetalles(false);
+    useEffect(() => {
+        fetchMemoria();
+    }, [id]);
+
+    // --- MANEJADORES DE TRABAJOS ---
+    
+    // Abrir modal para crear
+    const handleOpenCreateTrabajo = () => {
+        setEditTrabajoData(null); // Limpiamos edición
+        setOpenTrabajo(true);
+    };
+
+    // Abrir modal para editar
+    const handleEditTrabajo = (trabajo: any) => {
+        setVerTrabajo(null); // Cerramos visualización si estaba abierta
+        setEditTrabajoData(trabajo);
+        setOpenTrabajo(true);
+    };
+
+    // Eliminar trabajo
+    const handleDeleteTrabajo = async (trabajoId: number) => {
+        if (!confirm("¿Estás seguro de eliminar este trabajo?")) return;
+        try {
+            const res = await fetch(`/api/trabajo/${trabajoId}`, { method: "DELETE" });
+            const data = await res.json();
+            if (data.success) {
+                await fetchMemoria();
+            } else {
+                alert("Error al eliminar: " + data.error);
+            }
+        } catch (error) {
+            alert("Error de conexión");
+        }
+    };
+
+    // Callback al guardar (El modal hace el fetch, aquí solo refrescamos)
+    const handleSaveTrabajo = async (res: any) => {
+        if (res.success) {
+            await fetchMemoria();
+            setOpenTrabajo(false);
+            setEditTrabajoData(null);
+        }
+    };
+
+    // --- MANEJADORES DE PROYECTOS (Wizard de 2 pasos) ---
+
+    // Abrir modal para crear proyecto
+    const handleOpenCreateProyecto = () => {
+        setEditProyectoData(null);
+        setProyectoDataTemp({});
+        setModalProyectoDatos(true); // Paso 1
+    };
+
+    // Abrir modal para editar proyecto
+    const handleEditProyecto = (proyecto: any) => {
+        setVerProyecto(null);
+        setEditProyectoData(proyecto);
+        // Pre-llenamos los datos temporales con lo que ya tiene el proyecto
+        setProyectoDataTemp(proyecto);
+        setModalProyectoDatos(true); // Paso 1 (Edición)
+    };
+
+    // Eliminar proyecto
+    const handleDeleteProyecto = async (proyectoId: number) => {
+        if (!confirm("¿Estás seguro de eliminar este proyecto?")) return;
+        try {
+            // Asumiendo ruta /api/investigacion para proyectos
+            const res = await fetch(`/api/investigacion/${proyectoId}`, { method: "DELETE" });
+            const data = await res.json();
+            if (data.success) {
+                await fetchMemoria();
+            } else {
+                alert("Error al eliminar: " + data.error);
+            }
+        } catch (error) {
+            alert("Error de conexión");
+        }
+    };
+
+    // Paso 1 -> Paso 2 (Guardar datos parciales y avanzar)
+    const handleNextProyecto = (dataPaso1: any) => {
+        // dataPaso1 trae { nombre, codigo, tipo } del ModalProyectoDatos
+        setProyectoDataTemp({ ...proyectoDataTemp, ...dataPaso1 });
+        setModalProyectoDatos(false);
+        setModalProyectoDetalles(true); // Abrir Paso 2
+    };
+
+    // Paso 2 -> Guardar Final (Hacer el POST o PUT)
+    const handleFinalSaveProyecto = async (dataPaso2: any) => {
+        try {
+            // Combinamos todo: Datos Paso 1 + Datos Paso 2 + memoria_id
+            const payload = {
+                ...proyectoDataTemp,
+                ...dataPaso2,
+                memoria_id: Number(id), // Forzamos la vinculación a esta memoria
+            };
+
+            const isEdit = !!editProyectoData?.id;
+            const url = isEdit ? `/api/investigacion/${editProyectoData.id}` : '/api/investigacion';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                await fetchMemoria();
+                setModalProyectoDetalles(false);
+                setEditProyectoData(null);
+                setProyectoDataTemp({});
+            } else {
+                alert("Error al guardar proyecto: " + (data.error || "Desconocido"));
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error de conexión al guardar proyecto");
+        }
+    };
+
+    // --- FILTRADO ---
+    const trabajosFiltrados = trabajos.filter((t) => {
+        const esInternacional = 
+            t.reunion_tipo === 'INTERNACIONAL' || 
+            (t.pais && t.pais.toLowerCase() !== 'argentina');
+        const cumpleModo = modoGlobal ? esInternacional : !esInternacional;
+        const q = busquedaTrabajo.toLowerCase();
+        const cumpleBusqueda = 
+            t.titulo?.toLowerCase().includes(q) || 
+            t.reunion?.toLowerCase().includes(q) ||
+            t.expositor_nombre?.toLowerCase().includes(q);
+
+        return cumpleModo && cumpleBusqueda;
+    });
+
+    const proyectosFiltrados = proyectos.filter((p) => {
+        const q = busquedaProyecto.toLowerCase();
+        return (
+            p.nombre?.toLowerCase().includes(q) || 
+            p.codigo?.toLowerCase().includes(q) ||
+            p.tipo?.toLowerCase().includes(q)
+        );
+    });
+
+    const formatDate = (dateString: string) => {
+        if (!dateString) return "-";
+        const d = new Date(dateString);
+        return isNaN(d.getTime()) ? "-" : d.toLocaleDateString("es-AR");
+    };
+
+    if (loading && !memoria) {
+        return <div className="min-h-screen flex items-center justify-center">Cargando memoria...</div>;
     }
 
     return (
         <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
             <Sidebar />
 
-            <main className="flex-1 px-12 py-8 bg-white">
+            <main className="flex-1 px-12 py-8 bg-white overflow-y-auto h-screen">
 
                 {/* HEADER */}
-                <div className="flex items-center justify-between mb-10">
-                    <h1 className="text-3xl font-semibold text-gray-800">Memoria {id}</h1>
-
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                         <h1 className="text-3xl font-semibold text-gray-800">
+                            Memoria Anual {memoria?.anio}
+                        </h1>
+                        <p className="text-gray-500 mt-1">
+                            {memoria?.contenido || "Sin descripción disponible."}
+                        </p>
+                    </div>
+                   
                     <UserPill/>
                 </div>
-                <p className="text-l font-semibold text-gray-800 mt-2 mb-5">aca va el contenido de la memoria pa</p>
 
                 {/* TABS */}
                 <div className="flex gap-8 border-b border-gray-300 mb-8">
@@ -98,7 +257,7 @@ function MemoriaDetallePage() {
                                 : "text-gray-500 hover:text-gray-700"
                             }`}
                     >
-                        Trabajos presentados
+                        Trabajos presentados ({trabajos.length})
                     </button>
 
                     <button
@@ -108,50 +267,44 @@ function MemoriaDetallePage() {
                                 : "text-gray-500 hover:text-gray-700"
                             }`}
                     >
-                        Proyectos vinculados
+                        Proyectos vinculados ({proyectos.length})
                     </button>
                 </div>
 
-                {/* ===================================================================
-                        SECCIÓN TRABAJOS PRESENTADOS
-        =================================================================== */}
+                {/* SECCIÓN TRABAJOS */}
                 {tab === "trabajos" && (
                     <>
-                        {/* BUSCADOR + TOGGLE + BOTÓN */}
                         <div className="flex items-center justify-between mb-6">
-
-                            {/* BUSCADOR */}
                             <div className="relative w-80">
                                 <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                                 <input
                                     type="text"
-                                    placeholder="Buscar trabajo"
-                                    value={busqueda}
-                                    onChange={(e) => setBusqueda(e.target.value)}
-                                    className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm 
-                  focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
+                                    placeholder="Buscar trabajo..."
+                                    value={busquedaTrabajo}
+                                    onChange={(e) => setBusquedaTrabajo(e.target.value)}
+                                    className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
                                 />
                             </div>
 
                             <div className="flex items-center gap-4">
-
-                                {/* TOGGLE */}
+                                {/* TOGGLE BANDERA */}
                                 <div
+                                    className={`w-20 h-9 flex items-center rounded-full p-1 cursor-pointer transition-all ${modoGlobal ? "bg-[#00c9a7]" : "bg-gray-300"}`}
                                     onClick={() => setModoGlobal(!modoGlobal)}
-                                    className={`w-20 h-9 flex items-center rounded-full p-1 cursor-pointer transition-all 
-                    ${modoGlobal ? "bg-[#00c9a7]" : "bg-gray-300"}`}
                                 >
                                     <div
-                                        className={`w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center transition-all
-                      ${modoGlobal ? "translate-x-11" : "translate-x-0"}`}
+                                        className={`w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center overflow-hidden transition-all ${modoGlobal ? "translate-x-11" : "translate-x-0"}`}
                                     >
-                                        {modoGlobal ? "🌍" : "🇦🇷"}
+                                        {modoGlobal ? (
+                                            <img src="/earth.png" alt="Internacional" className="w-full h-full object-cover rounded-full" />
+                                        ) : (
+                                            <img src="/arg.png" alt="Argentina" className="w-full h-full object-cover rounded-full" />
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* BOTÓN AÑADIR */}
                                 <button
-                                    onClick={() => setOpenTrabajo(true)}
+                                    onClick={handleOpenCreateTrabajo}
                                     className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] hover:bg-[#00b197]"
                                 >
                                     + Añadir Trabajo
@@ -159,70 +312,59 @@ function MemoriaDetallePage() {
                             </div>
                         </div>
 
-                        {/* TABLA */}
+                        {/* TABLA TRABAJOS */}
                         <div className="border border-gray-300 rounded-lg overflow-hidden">
-
-                            {/* ENCABEZADOS */}
                             <div className="grid grid-cols-5 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
-                                <div className="px-4 py-3 border-r border-gray-300">Reunión</div>
+                                <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
                                 <div className="px-4 py-3 border-r border-gray-300">
                                     {modoGlobal ? "País" : "Ciudad"}
                                 </div>
                                 <div className="px-4 py-3 border-r border-gray-300">Fecha</div>
-                                <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
+                                <div className="px-4 py-3 border-r border-gray-300">Reunión</div>
                                 <div className="px-4 py-3 text-center">Acciones</div>
                             </div>
 
-                            {/* FILAS */}
-                            {trabajos
-                                .filter((t) =>
-                                    modoGlobal ? t.pais !== "Argentina" : t.pais === "Argentina"
-                                )
-                                .filter((t) =>
-                                    t.titulo.toLowerCase().includes(busqueda.toLowerCase())
-                                )
-                                .map((t, i) => (
+                            {trabajosFiltrados.length > 0 ? (
+                                trabajosFiltrados.map((t, i) => (
                                     <div
-                                        key={i}
-                                        className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"
-                                            }`}
+                                        key={t.id || i}
+                                        className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
                                     >
-                                        <div className="px-4 py-4 border-r border-gray-300">
-                                            {t.nombreReunion}
-                                        </div>
-
-                                        <div className="px-4 py-4 border-r border-gray-300">
+                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">{t.titulo}</div>
+                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">
                                             {modoGlobal ? t.pais : t.ciudad}
                                         </div>
-
-                                        <div className="px-4 py-4 border-r border-gray-300">
-                                            {t.fecha}
+                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">
+                                            {formatDate(t.fecha_presentacion)}
                                         </div>
-
-                                        <div className="px-4 py-4 border-r border-gray-300">
-                                            {t.titulo}
+                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">
+                                            {t.reunion}
                                         </div>
-
                                         <div className="px-4 py-4 flex justify-center gap-5">
-                                            <HiOutlineEye className="w-6 h-6 text-[#00c9a7] cursor-pointer" />
-                                            <HiOutlineTrash className="w-6 h-6 text-red-500 cursor-pointer" />
+                                            <HiOutlineEye 
+                                                className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110" 
+                                                onClick={() => setVerTrabajo(t)}
+                                                title="Ver detalle"
+                                            />
+                                            <HiOutlineTrash 
+                                                className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
+                                                onClick={() => handleDeleteTrabajo(t.id)}
+                                                title="Eliminar trabajo"
+                                            />
                                         </div>
                                     </div>
-                                ))}
+                                ))
+                            ) : (
+                                <div className="p-6 text-center text-gray-500">No se encontraron trabajos.</div>
+                            )}
                         </div>
                     </>
                 )}
 
-                {/* ===================================================================
-                            SECCIÓN PROYECTOS VINCULADOS
-        =================================================================== */}
+                {/* SECCIÓN PROYECTOS */}
                 {tab === "proyectos" && (
                     <>
-
-                        {/* BUSCADOR + BOTÓN AGREGAR */}
                         <div className="flex items-center justify-between mb-6">
-
-                            {/* BUSCADOR */}
                             <div className="relative w-80">
                                 <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                                 <input
@@ -230,14 +372,11 @@ function MemoriaDetallePage() {
                                     placeholder="Buscar proyecto"
                                     value={busquedaProyecto}
                                     onChange={(e) => setBusquedaProyecto(e.target.value)}
-                                    className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm 
-                     focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
+                                    className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
                                 />
                             </div>
-
-                            {/* BOTÓN AÑADIR */}
                             <button
-                                onClick={() => setModalProyectoDatos(true)}
+                                onClick={handleOpenCreateProyecto}
                                 className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] hover:bg-[#00b197]"
                             >
                                 + Añadir Proyecto
@@ -246,70 +385,104 @@ function MemoriaDetallePage() {
 
                         {/* TABLA PROYECTOS */}
                         <div className="border border-gray-300 rounded-lg overflow-hidden">
-
-                            {/* ENCABEZADOS */}
                             <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
                                 <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
                                 <div className="px-4 py-3 border-r border-gray-300">Código</div>
                                 <div className="px-4 py-3 border-r border-gray-300">Tipo de Proyecto</div>
                                 <div className="px-4 py-3 text-center">Acciones</div>
                             </div>
-
-                            {/* FILAS */}
-                            {proyectos
-                                .filter((p) =>
-                                    p.nombre.toLowerCase().includes(busquedaProyecto.toLowerCase())
-                                )
-                                .map((p, i) => (
+                            {proyectosFiltrados.length > 0 ? (
+                                proyectosFiltrados.map((p, i) => (
                                     <div
-                                        key={i}
-                                        className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"
-                                            }`}
+                                        key={p.id || i}
+                                        className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
                                     >
-                                        <div className="px-4 py-4 border-r border-gray-300">{p.nombre}</div>
-                                        <div className="px-4 py-4 border-r border-gray-300">{p.codigo}</div>
-                                        <div className="px-4 py-4 border-r border-gray-300">{p.tipo}</div>
-
-                                        {/* ACCIONES */}
+                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">{p.nombre}</div>
+                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">{p.codigo}</div>
+                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">{p.tipo}</div>
                                         <div className="px-4 py-4 flex justify-center gap-5">
-                                            <HiOutlineEye className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009c88]" />
-                                            <HiOutlineTrash className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700" />
+                                            <HiOutlineEye 
+                                                className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110" 
+                                                onClick={() => setVerProyecto(p)}
+                                                title="Ver detalle"
+                                            />
+                                            <HiOutlineTrash 
+                                                className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
+                                                onClick={() => handleDeleteProyecto(p.id)}
+                                                title="Eliminar proyecto"
+                                            />
                                         </div>
                                     </div>
-                                ))}
+                                ))
+                            ) : (
+                                <div className="p-6 text-center text-gray-500">No se encontraron proyectos.</div>
+                            )}
                         </div>
                     </>
                 )}
 
             </main>
 
-            {/* MODAL TRABAJO */}
-            <ModalTrabajo
-                open={openTrabajo}
-                modoInicial={modoGlobal ? "internacional" : "nacional"}
-                onClose={() => setOpenTrabajo(false)}
-                onSave={guardarTrabajo}
-            />
+            {/* --- MODALES CREACIÓN / EDICIÓN --- */}
+            {/* Usamos renderizado condicional ({open && <Modal/>}) para que se monten y desmonten limpiamente, 
+                evitando el error "Expected static flag" y reseteando los estados internos */}
 
-            {/* MODALES PROYECTO */}
-            <ModalProyectoDatos
-                open={modalProyectoDatos}
-                onClose={() => setModalProyectoDatos(false)}
-                onNext={() => {
-                    setModalProyectoDatos(false);
-                    setModalProyectoDetalles(true);
-                }}
-            />
+            {openTrabajo && (
+                <ModalTrabajo
+                    open={openTrabajo}
+                    modoInicial={modoGlobal ? "internacional" : "nacional"}
+                    initialData={editTrabajoData || { memoria_id: Number(id) }}
+                    editId={editTrabajoData?.id}
+                    onClose={() => setOpenTrabajo(false)}
+                    onSave={handleSaveTrabajo}
+                />
+            )}
 
-            <NewProyecto
-                open={modalProyectoDetalles}
-                onClose={() => setModalProyectoDetalles(false)}
-                onBack={() => {
-                    setModalProyectoDetalles(false);
-                    setModalProyectoDatos(true);
-                }}
-                onSave={guardarProyecto}
-            />
+            {/* Paso 1 Proyecto: Datos Generales */}
+            {modalProyectoDatos && (
+                <ModalProyectoDatos
+                    open={modalProyectoDatos}
+                    initialData={editProyectoData || {}} // Si hay edición, precarga datos
+                    onClose={() => setModalProyectoDatos(false)}
+                    // Asumo que tu ModalProyectoDatos soporta pasarle una función con los datos recolectados
+                    onNext={(dataPaso1: any) => handleNextProyecto(dataPaso1)} 
+                />
+            )}
+
+            {/* Paso 2 Proyecto: Detalles */}
+            {modalProyectoDetalles && (
+                <NewProyecto
+                    open={modalProyectoDetalles}
+                    initialData={{ ...editProyectoData, memoria_id: Number(id) }} // Precarga detalles si editas
+                    onClose={() => setModalProyectoDetalles(false)}
+                    onBack={() => {
+                        setModalProyectoDetalles(false);
+                        setModalProyectoDatos(true);
+                    }}
+                    onSave={handleFinalSaveProyecto}
+                />
+            )}
+
+            {/* --- MODALES VISUALIZACIÓN --- */}
+            
+            {verTrabajo && (
+                <ModalVerTrabajo 
+                    open={!!verTrabajo} 
+                    trabajo={verTrabajo} 
+                    onClose={() => setVerTrabajo(null)} 
+                    onEdit={(t) => handleEditTrabajo(t)}
+                />
+            )}
+
+            {verProyecto && (
+                <ModalVerProyecto
+                    open={!!verProyecto}
+                    proyecto={verProyecto}
+                    onClose={() => setVerProyecto(null)}
+                    onEdit={(p:any) => handleEditProyecto(p)}
+                />
+            )}
+
         </div>
     );
 }

@@ -7,6 +7,15 @@ import { getAuth } from '@/app/lib/requestAuth';
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificación de Seguridad
+      const auth = await getAuth(request);
+
+       if (!auth || auth.role !== "admin") {
+        return NextResponse.json(
+        { success: false, error: "Sólo administradores pueden registrar usuarios." },
+        { status: 403 }
+     );
+  }
     const body = await request.json();
     try { await createMemoriaSchema.parseAsync(body); } catch (err: any) { return NextResponse.json({ success: false, error: err.errors || err.message }, { status: 400 }); }
     const payload = { ...body};

@@ -13,10 +13,7 @@ export async function GET(
 ) {
   try {
   const { id } = await params;
-  const auth = await getAuth(request);
-  const role = auth?.role ?? 'user';
-
-    const response = await GrupoController.getById(parseInt(id));
+  const response = await GrupoController.getById(parseInt(id));
 
     return NextResponse.json(response, { status: response.success ? 200 : 404 });
   } catch (error: any) {
@@ -36,10 +33,17 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-  const { id } = await params;
-  const auth = await getAuth(request);
-  const role = auth?.role ?? 'user';
+    // Verificación de Seguridad
+      const auth = await getAuth(request);
 
+       if (!auth || auth.role !== "admin") {
+        return NextResponse.json(
+        { success: false, error: "Sólo administradores pueden registrar usuarios." },
+        { status: 403 }
+     );
+  }
+
+    const { id } = await params;
     const body = await request.json();
     try {
       await GrupoSchema.parseAsync(body);
@@ -70,6 +74,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Verificación de Seguridad
+      const auth = await getAuth(request);
+
+       if (!auth || auth.role !== "admin") {
+        return NextResponse.json(
+        { success: false, error: "Sólo administradores pueden registrar usuarios." },
+        { status: 403 }
+     );
+  }
     const { id } = await params;
     const response = await GrupoController.delete(parseInt(id));
 

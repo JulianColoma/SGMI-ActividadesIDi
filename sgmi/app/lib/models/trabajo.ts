@@ -6,33 +6,36 @@ export interface ITrabajo {
   resumen?: string;
   expositor_id?: number | null;
   reunion_id?: number | null;
-  grupo_id?: number | null;
+  memoria_id?: number | null;
   fecha_presentacion?: string | null;
   fecha_creacion?: Date;
 }
 
 export class TrabajoModel {
   static async create(data: ITrabajo): Promise<ITrabajo> {
-    const q = `INSERT INTO trabajos_congresos (titulo, resumen, expositor_id, reunion_id, grupo_id, fecha_presentacion)
+    const q = `INSERT INTO trabajos_congresos (titulo, resumen, expositor_id, reunion_id, memoria_id, fecha_presentacion)
     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`;
-    const r = await pool.query(q, [data.titulo, data.resumen || null, data.expositor_id || null, data.reunion_id || null, data.grupo_id || null, data.fecha_presentacion || null]);
+    const r = await pool.query(q, [data.titulo, data.resumen || null, data.expositor_id || null, data.reunion_id || null, data.memoria_id || null, data.fecha_presentacion || null]);
     return r.rows[0];
   }
 
-  static async findAll(grupoId?: number) {
-    // Traer trabajos junto con datos de la reunión (nombre, ciudad, tipo, pais) y expositor
-    let q = `SELECT tc.*, r.nombre AS reunion, r.ciudad AS ciudad, r.tipo AS reunion_tipo, r.pais AS pais,
-            p.nombre AS expositor_nombre
-         FROM trabajos_congresos tc
-         LEFT JOIN reuniones r ON tc.reunion_id = r.id
-         LEFT JOIN personal p ON tc.expositor_id = p.id`;
-    const params: any[] = [];
-    if (grupoId) {
-      q += ' WHERE tc.grupo_id = $1';
-      params.push(grupoId);
-    }
-    q += ' ORDER BY tc.fecha_creacion DESC';
-    const r = await pool.query(q, params);
+  static async findAll() {
+    let q = `SELECT tc.*, 
+                    r.nombre AS reunion, 
+                    r.ciudad AS ciudad, 
+                    r.tipo AS reunion_tipo, 
+                    r.pais AS pais,
+                    p.nombre AS expositor_nombre,
+                    m.anio AS memoria_anio,
+                    g.nombre AS grupo_nombre
+             FROM trabajos_congresos tc
+             LEFT JOIN reuniones r ON tc.reunion_id = r.id
+             LEFT JOIN personal p ON tc.expositor_id = p.id
+             LEFT JOIN memorias m ON tc.memoria_id = m.id
+             LEFT JOIN grupos g ON m.grupo_id = g.id`;
+
+   
+    const r = await pool.query(q);
     return r.rows;
   }
 
@@ -49,7 +52,7 @@ export class TrabajoModel {
     if (data.resumen !== undefined) { updates.push(`resumen = $${idx++}`); params.push(data.resumen); }
     if (data.expositor_id !== undefined) { updates.push(`expositor_id = $${idx++}`); params.push(data.expositor_id); }
     if (data.reunion_id !== undefined) { updates.push(`reunion_id = $${idx++}`); params.push(data.reunion_id); }
-    if (data.grupo_id !== undefined) { updates.push(`grupo_id = $${idx++}`); params.push(data.grupo_id); }
+    if (data.memoria_id !== undefined) { updates.push(`memoria_id = $${idx++}`); params.push(data.memoria_id); }
     if (data.fecha_presentacion !== undefined) { updates.push(`fecha_presentacion = $${idx++}`); params.push(data.fecha_presentacion); }
     if (!updates.length) return null;
     params.push(id);

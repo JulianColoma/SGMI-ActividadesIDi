@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UsuarioController } from "@/app/lib/controllers/usuario";
-import { loginSchema, registerSchema } from "@/app/lib/schemas/usuario";
+import { loginSchema } from "@/app/lib/schemas/usuario";
 import { serialize } from "cookie";
 
 export async function POST(request: NextRequest) {

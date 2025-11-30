@@ -2,17 +2,18 @@
 
 import { HiOutlineX } from "react-icons/hi";
 
-
 export default function ModalVerTrabajo({
   open,
   onClose,
   trabajo,
   onEdit,
+  hiddeGroup=false
 }: {
   open: boolean;
   onClose: () => void;
   trabajo: any | null;
   onEdit: (t: any) => void;
+  hiddeGroup?: boolean;
 }) {
   if (!open || !trabajo) return null;
 
@@ -21,6 +22,10 @@ export default function ModalVerTrabajo({
   const ciudad = trabajo.ciudad || '-';
   const fecha = trabajo.fecha_presentacion ? new Date(trabajo.fecha_presentacion).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
   const titulo = trabajo.titulo || '-';
+  
+  // Nuevos campos
+  const grupo = trabajo.grupo_nombre || '-';
+  const memoria = trabajo.memoria_anio ? `Año ${trabajo.memoria_anio}` : '-';
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
@@ -35,18 +40,25 @@ export default function ModalVerTrabajo({
         <h2 className="text-2xl font-semibold text-[#00c9a7] mb-8">Reunión {trabajo.reunion_tipo === 'INTERNACIONAL' ? 'Internacional' : 'Nacional'}</h2>
 
         <div className="grid grid-cols-2 gap-10 text-[15px] text-gray-800 leading-relaxed">
-        <div className="space-y-3">
-          <div><strong>Nombre de la Reunión:</strong> {nombreReunion}</div>
-          <div><strong>Fecha:</strong> {fecha}</div>
-          {trabajo.reunion_tipo === 'INTERNACIONAL' && trabajo.pais && (
-            <div><strong>País:</strong> {trabajo.pais}</div>
-          )}
-          <div><strong>Ciudad:</strong> {ciudad}</div>
-        </div>
-        <div className="space-y-3">
-          <div><strong>Expositor/a:</strong> {expositor}</div>
-          <div><strong>Título del Trabajo:</strong> {titulo}</div>
-        </div>
+            {/* Columna 1: Datos del Evento */}
+            <div className="space-y-3">
+                <div><strong>Nombre de la Reunión:</strong> {nombreReunion}</div>
+                <div><strong>Fecha:</strong> {fecha}</div>
+                {trabajo.reunion_tipo === 'INTERNACIONAL' && trabajo.pais && (
+                <div><strong>País:</strong> {trabajo.pais}</div>
+                )}
+                <div><strong>Ciudad:</strong> {ciudad}</div>
+            </div>
+
+            {/* Columna 2: Datos del Trabajo y Pertenencia */}
+            <div className="space-y-3">
+                <div><strong>Expositor/a:</strong> {expositor}</div>
+                <div><strong>Título del Trabajo:</strong> {titulo}</div>
+                
+                {/* Nuevos campos agregados aquí para balancear el diseño */}
+                {!hiddeGroup && <div><strong>Grupo:</strong> {grupo}</div>}
+                {!hiddeGroup && <div><strong>Memoria:</strong> {memoria}</div>}
+            </div>
         </div>
 
         <div className="flex justify-end mt-6">

@@ -2,7 +2,7 @@
 
 import { HiOutlineX } from "react-icons/hi";
 
-export default function ModalVerProyecto({ open, proyecto, onClose, onEdit }: any) {
+export default function ModalVerProyecto({ open, proyecto, onClose, onEdit, hiddeGroup=false }: any) {
   if (!open || !proyecto) return null;
 
   return (
@@ -29,6 +29,12 @@ export default function ModalVerProyecto({ open, proyecto, onClose, onEdit }: an
           <div className="space-y-3">
             <p><strong>Nombre del Proyecto:</strong> {proyecto.nombre}</p>
             <p><strong>Código:</strong> {proyecto.codigo}</p>
+            
+            {/* NUEVOS CAMPOS (vienen planos desde el SQL) */}
+            {!hiddeGroup && <p><strong>Grupo:</strong> {proyecto.grupo_nombre || "—"}</p>}
+            {!hiddeGroup && <p><strong>Memoria:</strong> {proyecto.memoria_anio ? `Año ${proyecto.memoria_anio}` : "—"}</p>}
+            
+
             <p><strong>Tipo de Proyecto:</strong> {proyecto.tipo}</p>
             <p><strong>Fecha de Inicio:</strong> {proyecto.fecha_inicio || "—"}</p>
             <p><strong>Fecha de Fin:</strong> {proyecto.fecha_fin || "—"}</p>

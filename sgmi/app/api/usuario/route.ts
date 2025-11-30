@@ -6,14 +6,15 @@ import { getAuth } from "@/app/lib/requestAuth";
 // Manejador para peticiones GET (Obtener todos los usuarios)
 export async function GET(request: NextRequest) {
   try {
-    const auth = await getAuth(request);
-        
-        if (!auth || auth.role !== "admin") {
-          return NextResponse.json(
-            { success: false, error: "Sólo administradores pueden consultar usuarios." },
-            { status: 403 }
-          );
-        }
+    // Verificación de Seguridad
+      const auth = await getAuth(request);
+
+       if (!auth || auth.role !== "admin") {
+        return NextResponse.json(
+        { success: false, error: "Sólo administradores pueden registrar usuarios." },
+        { status: 403 }
+     );
+  }
     const res = await UsuarioController.getAll();
 
     if (!res.success) {

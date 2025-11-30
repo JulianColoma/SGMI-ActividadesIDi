@@ -23,7 +23,15 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
- 
+    // Verificación de Seguridad
+      const auth = await getAuth(request);
+
+       if (!auth || auth.role !== "admin") {
+        return NextResponse.json(
+        { success: false, error: "Sólo administradores pueden registrar usuarios." },
+        { status: 403 }
+     );
+  }
 
     // validar body con Zod
     const body = await request.json();

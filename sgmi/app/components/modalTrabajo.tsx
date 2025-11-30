@@ -1,6 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// Interfaces para los dropdowns
+interface Memoria {
+  id: number;
+  anio: number;
+  contenido: string;
+}
+
+interface Grupo {
+  id: number;
+  nombre: string;
+  memorias: Memoria[];
+}
 
 export default function ModalTrabajo({
   open,
@@ -17,42 +30,126 @@ export default function ModalTrabajo({
   initialData?: any;
   editId?: number | null;
 }) {
-  // Tipo de reunión según el toggle inicial o initialData
-  const initialTipo = initialData ? (initialData.reunion_tipo && initialData.reunion_tipo.toLowerCase() === 'internacional' ? 'internacional' : (initialData.pais ? 'internacional' : 'nacional')) : modoInicial;
-  const [tipo, setTipo] = useState<"nacional" | "internacional">(initialTipo);
+  // Lógica robusta para determinar el tipo inicial
+  const resolvedTipo = (() => {
+    if (initialData) {
+      // 1. Prioridad: Usar el tipo explícito que viene de la BD
+      if (initialData.reunion_tipo) {
+        return initialData.reunion_tipo.toLowerCase() === "internacional"
+          ? "internacional"
+          : "nacional";
+      }
+      // 2. Fallback: Si tiene país y NO es Argentina, asumimos internacional
+      if (initialData.pais && initialData.pais.toLowerCase() !== "argentina") {
+        return "internacional";
+      }
+      return "nacional";
+    }
+    return modoInicial;
+  })();
 
-  // Estado del formulario (si viene initialData lo prellenamos)
+  const [tipo, setTipo] = useState<"nacional" | "internacional">(resolvedTipo);
+
+  // --- NUEVO: Estados para los selectores de Grupo y Memoria ---
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [selectedGrupoId, setSelectedGrupoId] = useState<number | string>("");
+  const [selectedMemoriaId, setSelectedMemoriaId] = useState<number | string>(
+    ""
+  );
+
+  // Estado del formulario
   const [form, setForm] = useState(() => ({
     nombreReunion: initialData?.reunion || initialData?.nombreReunion || "",
     ciudad: initialData?.ciudad || "",
     expositor: initialData?.expositor_nombre || "",
-    fecha: initialData?.fecha_presentacion ? String(initialData.fecha_presentacion).slice(0,10) : "",
+    fecha: initialData?.fecha_presentacion
+      ? String(initialData.fecha_presentacion).slice(0, 10)
+      : "",
     titulo: initialData?.titulo || "",
-    pais: initialData?.pais || (initialData ? (initialData.reunion_tipo === 'INTERNACIONAL' ? '' : 'Argentina') : (modoInicial === 'nacional' ? 'Argentina' : '')),
+    // Si es nacional, forzamos Argentina si no viene nada; si es internacional dejamos lo que venga o vacío
+    pais: initialData?.pais || (resolvedTipo === "nacional" ? "Argentina" : ""),
   }));
 
-  // Defensor: siempre mantener value en todos los inputs
   const handleChange = (field: string, value: string) => {
+    // Lógica para detectar cambio manual a "Argentina"
+    if (field === "pais" && value.toLowerCase().trim() === "argentina") {
+      setTipo("nacional");
+      // Forzamos "Argentina" con mayúscula y cortamos la ejecución aquí
+      setForm((prev: any) => ({ ...prev, [field]: "Argentina" }));
+      return;
+    }
+
     setForm((prev: any) => ({ ...prev, [field]: value }));
   };
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 1. Cargar la lista de grupos y memorias al abrir
+  useEffect(() => {
+    const fetchGrupos = async () => {
+      try {
+        const res = await fetch("/api/grupo");
+        const data = await res.json();
+
+        if (data.success && Array.isArray(data.data)) {
+          setGrupos(data.data);
+        }
+      } catch (error) {
+        console.error("Error al cargar grupos:", error);
+      }
+    };
+
+    if (open) {
+      fetchGrupos();
+    }
+  }, [open]);
+
+  // 2. Manejar la precarga de datos (Modo Edición) para los Dropdowns
+  useEffect(() => {
+    if (open && initialData) {
+      // Lógica para preseleccionar los dropdowns si ya hay una memoria asignada
+      if (initialData.memoria_id && grupos.length > 0) {
+        // Buscamos a qué grupo pertenece esta memoria_id
+        const grupoPadre = grupos.find((g) =>
+          g.memorias.some((m) => m.id === initialData.memoria_id)
+        );
+
+        if (grupoPadre) {
+          setSelectedGrupoId(grupoPadre.id);
+          setSelectedMemoriaId(initialData.memoria_id);
+        }
+      }
+    }
+
+    // Resetear al cerrar
+    if (!open) {
+      setSelectedGrupoId("");
+      setSelectedMemoriaId("");
+    }
+  }, [open, initialData, grupos]);
+
+  // Filtrar las memorias disponibles según el grupo seleccionado
+  const memoriasDelGrupo =
+    grupos.find((g) => g.id === Number(selectedGrupoId))?.memorias || [];
+
   const handleSave = async (e?: any) => {
     try {
       setError(null);
       setLoading(true);
 
-      // Preparar payload mínimo requerido por la API
+      // Preparar payload
       const payload: any = {
         titulo: form.titulo,
         fecha_presentacion: form.fecha || undefined,
         resumen: undefined,
         expositor_id: null,
         reunion_id: null,
-        grupo_id: null,
-        // datos extra (no usados por el modelo directamente pero útiles para el backend)
+
+        // --- NUEVO: Enviamos la memoria seleccionada ---
+        memoria_id: selectedMemoriaId ? Number(selectedMemoriaId) : null,
+
+        // datos extra
         ciudad: form.ciudad,
         pais: form.pais,
         nombreReunion: form.nombreReunion,
@@ -60,31 +157,31 @@ export default function ModalTrabajo({
         expositor: form.expositor,
       };
 
-      // si tenemos editId o initialData.id usamos PUT, sino POST
       const isEdit = !!(editId || initialData?.id);
-      const url = isEdit ? `/api/trabajo/${editId ?? initialData.id}` : '/api/trabajo';
-      const method = isEdit ? 'PUT' : 'POST';
+      const url = isEdit
+        ? `/api/trabajo/${editId ?? initialData.id}`
+        : "/api/trabajo";
+      const method = isEdit ? "PUT" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || data.message || 'Error al guardar');
+        setError(data.error || data.message || "Error al guardar");
         setLoading(false);
         return;
       }
 
-      // Llamar al callback con la respuesta del servidor
       onSave(data);
       setLoading(false);
       onClose();
     } catch (e: any) {
-      setError(e.message || 'Error en la petición');
+      setError(e.message || "Error en la petición");
       setLoading(false);
     }
   };
@@ -93,8 +190,7 @@ export default function ModalTrabajo({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-[#D9D9D9] w-[850px] rounded-2xl shadow-xl relative p-6">
-
+      <div className="bg-[#D9D9D9] w-[850px] rounded-2xl shadow-xl relative p-6 max-h-[95vh] overflow-y-auto">
         {/* BOTÓN CERRAR */}
         <button
           onClick={onClose}
@@ -111,10 +207,11 @@ export default function ModalTrabajo({
               handleChange("pais", "Argentina");
             }}
             className={`px-4 py-2 rounded-lg font-medium transition-all 
-            ${tipo === "nacional"
+            ${
+              tipo === "nacional"
                 ? "bg-[#00c9a7] text-white"
                 : "bg-[#cfcfcf] text-gray-700"
-              }`}
+            }`}
           >
             Reunión Nacional
           </button>
@@ -125,10 +222,11 @@ export default function ModalTrabajo({
               handleChange("pais", "");
             }}
             className={`px-4 py-2 rounded-lg font-medium transition-all 
-            ${tipo === "internacional"
+            ${
+              tipo === "internacional"
                 ? "bg-[#00c9a7] text-white"
                 : "bg-[#cfcfcf] text-gray-700"
-              }`}
+            }`}
           >
             Reunión Internacional
           </button>
@@ -136,18 +234,69 @@ export default function ModalTrabajo({
 
         {/* FORM */}
         <div className="grid grid-cols-2 gap-6 text-sm">
+          {/* Dropdown 1: Grupo */}
+          <div>
+            <label className="font-semibold text-black">
+              Seleccionar Grupo
+            </label>
+            <select
+              className="input-base mt-1 w-full p-2 border border-gray-300 rounded-md"
+              value={selectedGrupoId}
+              onChange={(e) => {
+                setSelectedGrupoId(Number(e.target.value));
+                setSelectedMemoriaId(""); // Resetear memoria al cambiar de grupo
+              }}
+            >
+              <option value="">-- Elija un grupo --</option>
+              {grupos.map((grupo) => (
+                <option key={grupo.id} value={grupo.id}>
+                  {grupo.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
 
+          {/* Dropdown 2: Memoria */}
+          <div>
+            <label className="font-semibold text-black">
+              Seleccionar Memoria
+            </label>
+            <select
+              className="input-base mt-1 w-full p-2 border border-gray-300 rounded-md disabled:bg-gray-200 disabled:text-gray-500"
+              value={selectedMemoriaId}
+              onChange={(e) => setSelectedMemoriaId(Number(e.target.value))}
+              disabled={!selectedGrupoId}
+            >
+              <option value="">
+                {selectedGrupoId
+                  ? "-- Elija una memoria --"
+                  : "-- Primero seleccione un grupo --"}
+              </option>
+              {memoriasDelGrupo.map((mem) => (
+                <option key={mem.id} value={mem.id}>
+                  {mem.anio} -{" "}
+                  {mem.contenido
+                    ? mem.contenido.substring(0, 40) + "..."
+                    : "Sin contenido"}
+                </option>
+              ))}
+            </select>
+          </div>
           {/* NOMBRE REUNIÓN */}
           <div>
-            <label className="font-semibold text-black">Nombre de la Reunión</label>
-
+            <label className="font-semibold text-black">
+              Nombre de la Reunión
+            </label>
             <input
               className="input-base mt-1"
-              placeholder={tipo === "nacional" ? "Congreso" : "Nombre de la reunión internacional"}
+              placeholder={
+                tipo === "nacional"
+                  ? "Congreso"
+                  : "Nombre de la reunión internacional"
+              }
               value={form.nombreReunion}
               onChange={(e) => handleChange("nombreReunion", e.target.value)}
             />
-            
           </div>
 
           {/* CIUDAD */}
@@ -162,7 +311,9 @@ export default function ModalTrabajo({
           </div>
           {/* EXPOSITOR */}
           <div>
-            <label className="font-semibold text-black">Nombre de Expositor/a</label>
+            <label className="font-semibold text-black">
+              Nombre de Expositor/a
+            </label>
             <input
               className="input-base mt-1"
               placeholder="Nombre completo"
@@ -184,7 +335,9 @@ export default function ModalTrabajo({
 
           {/* TÍTULO */}
           <div className="col-span-2">
-            <label className="font-semibold text-black">Título del Trabajo</label>
+            <label className="font-semibold text-black">
+              Título del Trabajo
+            </label>
             <input
               className="input-base mt-1"
               placeholder="Título"
@@ -211,9 +364,7 @@ export default function ModalTrabajo({
                 onChange={(e) => handleChange("pais", e.target.value)}
               />
             )}
-
           </div>
-
         </div>
 
         {/* BOTÓN GUARDAR */}
@@ -221,13 +372,16 @@ export default function ModalTrabajo({
         <div className="flex justify-end mt-6">
           <button
             onClick={handleSave}
-            disabled={loading}
-            className={`px-8 py-3 rounded-md text-white font-medium text-lg ${loading ? 'bg-gray-400' : 'bg-[#00c9a7] hover:bg-[#00b197]'}`}
+            disabled={loading || !selectedMemoriaId} // Deshabilitamos si no hay memoria
+            className={`px-8 py-3 rounded-md text-white font-medium text-lg ${
+              loading || !selectedMemoriaId
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#00c9a7] hover:bg-[#00b197]"
+            }`}
           >
-            {loading ? 'Guardando...' : 'Guardar Trabajo'}
+            {loading ? "Guardando..." : "Guardar Trabajo"}
           </button>
         </div>
-
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ export const createTrabajoSchema = z.object({
   resumen: z.string().optional(),
   expositor_id: z.number().int().positive().nullable().optional(),
   reunion_id: z.number().int().positive().nullable().optional(),
-  grupo_id: z.number().int().positive().nullable().optional(),
+  memoria_id: z.number().int().positive().nullable().optional(),
   fecha_presentacion: z.string().optional()
 });
 

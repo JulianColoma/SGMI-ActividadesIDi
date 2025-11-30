@@ -15,7 +15,45 @@ export class MemoriaModel {
   }
 
 
-  static async findById(id: number) { const r = await pool.query('SELECT * FROM memorias WHERE id = $1', [id]); return r.rows.length ? r.rows[0] : null }
+  static async findById(id: number) {
+    //  Buscar la memoria base
+    const memoriaRes = await pool.query('SELECT * FROM memorias WHERE id = $1', [id]);
+    
+    if (memoriaRes.rows.length === 0) return null;
+    const memoria = memoriaRes.rows[0];
+
+    //  Ejecutar consultas de Proyectos y Trabajos en paralelo
+    const [proyectosRes, trabajosRes] = await Promise.all([
+     
+      pool.query(
+        'SELECT * FROM investigaciones WHERE memoria_id = $1 ORDER BY id DESC', 
+        [id]
+      ),
+
+      
+      pool.query(
+        `SELECT tc.*, 
+                r.nombre AS reunion, 
+                r.ciudad AS ciudad, 
+                r.tipo AS reunion_tipo, 
+                r.pais AS pais,
+                p.nombre AS expositor_nombre
+         FROM trabajos_congresos tc
+         LEFT JOIN reuniones r ON tc.reunion_id = r.id
+         LEFT JOIN personal p ON tc.expositor_id = p.id
+         WHERE tc.memoria_id = $1
+         ORDER BY tc.fecha_presentacion DESC`,
+        [id]
+      )
+    ]);
+
+    
+    return {
+      ...memoria,
+      proyectos: proyectosRes.rows, 
+      trabajos: trabajosRes.rows    
+    };
+  }
 
 
 

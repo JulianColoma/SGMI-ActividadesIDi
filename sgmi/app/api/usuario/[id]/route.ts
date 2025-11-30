@@ -9,17 +9,18 @@ interface RouteParams {
 
 export async function DELETE(
   request: NextRequest,
-  { params }: RouteParams // Desestructuramos y tipamos correctamente
+  { params }: RouteParams 
 ) {
   try {
-    const auth = await getAuth(request);
+    // Verificación de Seguridad
+      const auth = await getAuth(request);
 
-    if (!auth || auth.role !== "admin") {
-      return NextResponse.json(
-        { success: false, error: "Sólo administradores pueden eliminar usuarios." },
+       if (!auth || auth.role !== "admin") {
+        return NextResponse.json(
+        { success: false, error: "Sólo administradores pueden registrar usuarios." },
         { status: 403 }
-      );
-    }
+     );
+  }
 
     // 1. AWAIT CRÍTICO: Esperamos a que la promesa de params se resuelva
     const resolvedParams = await params;

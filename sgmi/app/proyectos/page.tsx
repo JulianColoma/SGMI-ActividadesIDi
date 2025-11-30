@@ -1,6 +1,6 @@
 "use client";
 
-import { HiOutlineUserCircle, HiOutlineSearch, HiOutlineTrash, HiOutlineEye } from "react-icons/hi";
+import { HiOutlineSearch, HiOutlineTrash, HiOutlineEye } from "react-icons/hi";
 import Sidebar from "../components/sidebar";
 import NewProyecto from "../components/newproyecto";
 import ModalProyectoDatos from "../components/modalProyectorsDatos";
@@ -26,8 +26,7 @@ function ProyectosPage() {
     logros: "",
     fuente_financiamiento: "",
     dificultades: "",
-    // default to grupo 1 for now so validation doesn't fail when empty
-    grupo_id: 1,
+    memoria_id: 1,
   });
   // Modal de error
   const [showError, setShowError] = useState(false);
@@ -65,7 +64,7 @@ function ProyectosPage() {
     setError(null);
     try {
     
-      const res = await fetch("/api/investigacion?grupo_id=1", {
+      const res = await fetch("/api/investigacion", {
         credentials: "include",
       });
 
@@ -168,7 +167,7 @@ function ProyectosPage() {
       logros: proyecto?.logros ?? "",
       fuente_financiamiento: proyecto?.fuente_financiamiento ?? "",
       dificultades: proyecto?.dificultades ?? "",
-      grupo_id: proyecto?.grupo_id ?? 1,
+      memoria_id: proyecto?.memoria_id ?? 1,
     });
     // Close view modal and open the first modal to edit
     setModalVer(false);
