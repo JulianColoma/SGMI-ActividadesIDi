@@ -7,6 +7,8 @@ export const createInvestigacionSchema = z.object({
   fecha_fin: z.string().optional(),
   nombre: z.string().min(1),
   descripcion: z.string().optional(),
+  logros: z.string().optional(),
+  dificultades: z.string().optional(),
   fuente_financiamiento: z.string().optional(),
   grupo_id: z.number().int().positive()
 });

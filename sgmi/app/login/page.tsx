@@ -23,6 +23,7 @@ export default function LoginPage() {
     try {
       const res = await fetch("/api/usuario/login", {
         method: "POST",
+        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
@@ -35,7 +36,8 @@ export default function LoginPage() {
         return;
       }
 
-      login(); // <-- ¡Llamar a login para actualizar el estado!
+      // Pasamos los datos del usuario al contexto para actualizar inmediatamente el estado
+      login(data.data);
       router.push("/"); 
     } catch (err) {
       console.error(err);

@@ -8,6 +8,8 @@ export interface IInvestigacion {
   fecha_fin?: string | null;
   nombre: string;
   descripcion?: string;
+  logros?: string | null;
+  dificultades?: string | null;
   fuente_financiamiento?: string;
   grupo_id: number;
   fecha_creacion?: Date;
@@ -16,8 +18,8 @@ export interface IInvestigacion {
 export class InvestigacionModel {
   static async create(data: IInvestigacion): Promise<IInvestigacion> {
     const query = `
-      INSERT INTO investigaciones (tipo, codigo, fecha_inicio, fecha_fin, nombre, descripcion, fuente_financiamiento, grupo_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO investigaciones (tipo, codigo, fecha_inicio, fecha_fin, nombre, descripcion, logros, dificultades, fuente_financiamiento, grupo_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
 
@@ -28,6 +30,8 @@ export class InvestigacionModel {
       data.fecha_fin || null,
       data.nombre,
       data.descripcion || null,
+      data.logros || null,
+      data.dificultades || null,
       data.fuente_financiamiento || null,
       data.grupo_id
     ]);
@@ -64,6 +68,8 @@ export class InvestigacionModel {
     if (data.fecha_fin !== undefined) { updates.push(`fecha_fin = $${idx++}`); params.push(data.fecha_fin); }
     if (data.nombre !== undefined) { updates.push(`nombre = $${idx++}`); params.push(data.nombre); }
     if (data.descripcion !== undefined) { updates.push(`descripcion = $${idx++}`); params.push(data.descripcion); }
+    if (data.logros !== undefined) { updates.push(`logros = $${idx++}`); params.push(data.logros); }
+    if (data.dificultades !== undefined) { updates.push(`dificultades = $${idx++}`); params.push(data.dificultades); }
     if (data.fuente_financiamiento !== undefined) { updates.push(`fuente_financiamiento = $${idx++}`); params.push(data.fuente_financiamiento); }
     if (data.grupo_id !== undefined) { updates.push(`grupo_id = $${idx++}`); params.push(data.grupo_id); }
 

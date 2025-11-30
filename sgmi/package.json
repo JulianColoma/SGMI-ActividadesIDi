@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "check-api": "node scripts/check_api_investigacion.js",
+    "migrate:add-dificultades": "node scripts/add_dificultades_column.js",
+    "test:insert-investigacion": "node scripts/test_insert_investigacion.js",
+    "test:api-post-investigacion": "node scripts/test_api_post_investigacion.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

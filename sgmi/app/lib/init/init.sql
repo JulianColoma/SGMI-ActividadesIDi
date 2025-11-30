@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS investigaciones (
     fecha_fin DATE,
     nombre VARCHAR(255) NOT NULL,
     descripcion TEXT,
+    logros TEXT,
     fuente_financiamiento TEXT,
     grupo_id INTEGER NOT NULL REFERENCES grupos(id) ON DELETE CASCADE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
