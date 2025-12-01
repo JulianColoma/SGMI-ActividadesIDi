@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Hint from "./alerts/Hint";
 
 // Definimos las interfaces basándonos en tu JSON
 interface Memoria {
@@ -39,6 +40,7 @@ export default function NewProyecto({
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [selectedGrupoId, setSelectedGrupoId] = useState<number | string>(""); 
   const [selectedMemoriaId, setSelectedMemoriaId] = useState<number | string>("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
 
 
   useEffect(() => {
@@ -68,9 +70,13 @@ export default function NewProyecto({
       setLogros(initialData.logros ?? "");
       setDificultades(initialData.dificultades ?? "");
       
+      // Si initialData tiene grupo_id directamente, usarlo
+      if (initialData.grupo_id) {
+        setSelectedGrupoId(initialData.grupo_id);
+      }
      
       if (initialData.memoria_id && grupos.length > 0) {
-        // Buscamos a qué grupo pertenece esta memoria_id
+        // Buscamos a qué grupo pertenece esta memoria_id (para edición)
         const grupoPadre = grupos.find(g => 
           g.memorias.some(m => m.id === initialData.memoria_id)
         );
@@ -115,11 +121,19 @@ export default function NewProyecto({
           <div>
             <label className="font-semibold text-black">Seleccionar Grupo</label>
             <select
-              className="input-base mt-1 w-full p-2 border border-gray-300 rounded-md"
+              className={`input-base mt-1 w-full p-2 rounded-md ${
+                fieldErrors.selectedGrupoId
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : 'border border-gray-300'
+              }`}
               value={selectedGrupoId}
               onChange={(e) => {
                 setSelectedGrupoId(Number(e.target.value));
                 setSelectedMemoriaId(""); // Resetear memoria al cambiar de grupo
+                // Limpiar error al seleccionar
+                const errs = { ...fieldErrors };
+                if (e.target.value) delete errs.selectedGrupoId;
+                setFieldErrors(errs);
               }}
             >
               <option value="">-- Elija un grupo --</option>
@@ -129,13 +143,18 @@ export default function NewProyecto({
                 </option>
               ))}
             </select>
+            {fieldErrors.selectedGrupoId && <Hint show={true} message={fieldErrors.selectedGrupoId} type="error" />}
           </div>
 
           {/* --- Dropdown 2: Memoria (Dependiente) --- */}
           <div>
             <label className="font-semibold text-black">Seleccionar Memoria</label>
             <select
-              className="input-base mt-1 w-full p-2 border border-gray-300 rounded-md disabled:bg-gray-200 disabled:text-gray-500"
+              className={`input-base mt-1 w-full p-2 rounded-md disabled:bg-gray-200 disabled:text-gray-500 ${
+                fieldErrors.memoria_id
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : 'border border-gray-300'
+              }`}
               value={selectedMemoriaId}
               onChange={(e) => setSelectedMemoriaId(Number(e.target.value))}
               disabled={!selectedGrupoId} // Se bloquea si no hay grupo seleccionado
@@ -152,6 +171,7 @@ export default function NewProyecto({
             {selectedGrupoId && memoriasDelGrupo.length === 0 && (
               <p className="text-red-500 text-xs mt-1">Este grupo no tiene memorias cargadas.</p>
             )}
+            {fieldErrors.memoria_id && <Hint show={true} message={fieldErrors.memoria_id} type="error" />}
           </div>
 
           {/* Financiamiento */}
@@ -160,7 +180,11 @@ export default function NewProyecto({
             <input
               type="text"
               placeholder="Banco Galicia..."
-              className="input-base mt-1 w-full p-2 border border-gray-300 rounded-md"
+              className={`input-base mt-1 w-full p-2 rounded-md ${
+                fieldErrors.fuente_financiamiento
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : 'border border-gray-300'
+              }`}
               value={fuente_financiamiento}
               onChange={(e) => setFinanciamiento(e.target.value)}
             />
@@ -172,7 +196,11 @@ export default function NewProyecto({
             <input
               type="text"
               placeholder="Objetivo cumplido..."
-              className="input-base mt-1 w-full p-2 border border-gray-300 rounded-md"
+              className={`input-base mt-1 w-full p-2 rounded-md ${
+                fieldErrors.logros
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : 'border border-gray-300'
+              }`}
               value={logros}
               onChange={(e) => setLogros(e.target.value)}
             />
@@ -200,18 +228,21 @@ export default function NewProyecto({
           </button>
 
           <button
-            onClick={() =>
+            onClick={() => {
+              const errs: Record<string,string> = {};
+              if (!selectedGrupoId) errs.selectedGrupoId = 'Selecciona un grupo para el proyecto';
+              if (!selectedMemoriaId) errs.memoria_id = 'Selecciona la memoria vinculada al proyecto';
+              if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+              setFieldErrors({});
               onSave({
                 fuente_financiamiento,
                 logros,
                 dificultades,
+                grupo_id: Number(selectedGrupoId),
                 memoria_id: Number(selectedMemoriaId) // Enviamos la memoria vinculada
               })
-            }
-            // Evitamos guardar si no seleccionó memoria
-            disabled={!selectedMemoriaId}
-            className={`px-10 py-3 rounded-md font-medium text-lg text-white transition-colors
-              ${!selectedMemoriaId ? "bg-gray-400 cursor-not-allowed" : "bg-[#00c9a7] hover:bg-[#00b197]"}`}
+            }}
+            className={`px-10 py-3 rounded-md font-medium text-lg text-white bg-[#00c9a7] hover:bg-[#00b197]`}
           >
             Guardar Proyecto
           </button>

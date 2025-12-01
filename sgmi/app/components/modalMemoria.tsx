@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Hint from "./alerts/Hint";
 
 interface ModalAddMemoriaProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface ModalAddMemoriaProps {
 export default function ModalAddMemoria({ open, onClose, onSave }: ModalAddMemoriaProps) {
   const [anio, setAnio] = useState(new Date().getFullYear());
   const [contenido, setContenido] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
 
   // Reiniciar campos cuando se abre el modal
   useEffect(() => {
@@ -23,6 +25,10 @@ export default function ModalAddMemoria({ open, onClose, onSave }: ModalAddMemor
   if (!open) return null;
 
   const handleSave = () => {
+    const errs: Record<string,string> = {};
+    if (!anio || isNaN(Number(anio)) || Number(anio) < 1900 || Number(anio) > 2100) errs.anio = 'Año inválido';
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     onSave({ anio, contenido });
   };
 
@@ -50,10 +56,21 @@ export default function ModalAddMemoria({ open, onClose, onSave }: ModalAddMemor
               type="number"
               min="1900"
               max="2100"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
+              className={`w-full rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-1 ${
+                fieldErrors.anio
+                  ? 'border-2 border-red-500 focus:ring-red-500'
+                  : 'border border-gray-300 focus:ring-[#00c9a7]'
+              }`}
               value={anio}
               onChange={(e) => setAnio(parseInt(e.target.value))}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!anio || isNaN(Number(anio)) || Number(anio) < 1900 || Number(anio) > 2100) errs.anio = 'Año inválido';
+                else delete errs.anio;
+                setFieldErrors(errs);
+              }}
             />
+            {fieldErrors.anio && <Hint show={true} message={fieldErrors.anio} type="error" />}
           </div>
 
           {/* Campo Contenido */}

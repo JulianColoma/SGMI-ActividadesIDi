@@ -10,6 +10,7 @@ import { withAuth } from "../withAuth";
 import ModalAddMemoria from "@/app/components/modalMemoria";
 import ModalAddGrupo from "@/app/components/modalGrupo";
 import ErrorModal from "@/app/components/alerts/ErrorModal";
+import { Toast } from '@/app/lib/swal';
 import ConfirmModal from "@/app/components/alerts/ConfrimModal";
 
 interface Memoria {
@@ -94,7 +95,7 @@ function MemoriasPage() {
   };
 
   const handleDeleteGrupo = (grupoId: number) => {
-    setConfirmMessage("¿Deseas eliminar este grupo y todas sus memorias?");
+    setConfirmMessage("¿Estas seguro de que deseas eliminar este grupo y todas sus memorias? Esta acción no se puede deshacer.");
     setConfirmAction(() => () => deleteGrupo(grupoId));
     setConfirmOpen(true);
   };
@@ -116,6 +117,8 @@ function MemoriasPage() {
         return;
       }
 
+      // mostrar toast de éxito
+      try { await Toast.fire({ icon: 'success', title: 'Grupo creado con éxito' }); } catch {}
       setIsModalGrupoOpen(false);
       await fetchDatos();
     } catch {
@@ -157,7 +160,7 @@ function MemoriasPage() {
 
   // abrir confirmación
   const handleDeleteMemoria = (memoriaId: number) => {
-    setConfirmMessage("¿Deseas eliminar esta memoria?");
+    setConfirmMessage("¿Estas seguro de que deseas eliminar esta memoria con sus Trabajos y Proyectos? Esta acción no se puede deshacer.");
     setConfirmAction(() => () => deleteMemoria(memoriaId));
     setConfirmOpen(true);
   };
@@ -185,6 +188,8 @@ function MemoriasPage() {
         return;
       }
 
+      // mostrar toast de éxito
+      try { await Toast.fire({ icon: 'success', title: 'Memoria creada con éxito' }); } catch {}
       setIsModalMemoriaOpen(false);
       setGrupoSeleccionadoId(null);
       await fetchDatos();

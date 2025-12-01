@@ -14,6 +14,7 @@ import UserPill from "../components/userPill";
 import { withAuth } from "../withAuth";
 import ErrorModal from "../components/alerts/ErrorModal";
 import ConfirmModal from "../components/alerts/ConfrimModal";
+import Hint from "../components/alerts/Hint";
 
 function TrabajosPage() {
   const [showError, setShowError] = useState(false);
@@ -99,9 +100,12 @@ function TrabajosPage() {
       <main className="flex-1 px-12 py-8 bg-white">
         {/* HEADER SUPERIOR */}
         <div className="flex items-center justify-between mb-10">
-          <h1 className="text-3xl font-semibold text-gray-800">
-            Gestión de Trabajos Presentados en Reuniones
-          </h1>
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-800">
+              Gestión de Trabajos Presentados en Reuniones
+            </h1>
+            <Hint show={true} message={"Consejo: para reuniones internacionales indica el país. Escribe el nombre del expositor libremente."} />
+          </div>
 
           <UserPill />
         </div>

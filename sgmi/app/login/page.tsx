@@ -51,13 +51,13 @@ export default function LoginPage() {
     <div className="min-h-screen bg-white flex flex-col">
       {/* BARRA SUPERIOR + BOTÓN REGISTRARSE (como en Figma) */}
       <header className="w-full bg-[#e5e7eb] h-20 flex items-center justify-end px-10">
-        <button
+        {/*<button
           type="button"
           onClick={() => router.push("/register")} // cambia la ruta si usás otra
           className="px-6 py-2 rounded-sm bg-[#243343] text-white text-sm font-medium hover:bg-[#1b2633]"
         >
           Registrarse
-        </button>
+        </button>*/}
       </header>
 
       {/* CONTENIDO CENTRAL */}
@@ -103,8 +103,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* TEXTO "¿Olvidaste tu contraseña?" COMO EN FIGMA */}
-          <div className="text-left">
+          {/*<div className="text-left">
             <button
               type="button"
               className="text-xs underline text-gray-700 hover:text-gray-900"
@@ -113,7 +112,7 @@ export default function LoginPage() {
             >
               ¿Olvidaste tu contraseña?
             </button>
-          </div>
+          </div>*/}
 
           {error && (
             <p className="text-red-600 text-sm text-center">{error}</p>

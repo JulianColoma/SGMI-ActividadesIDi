@@ -16,8 +16,14 @@ export class MemoriaModel {
 
 
   static async findById(id: number) {
-    //  Buscar la memoria base
-    const memoriaRes = await pool.query('SELECT * FROM memorias WHERE id = $1', [id]);
+    //  Buscar la memoria base CON el nombre del grupo
+    const memoriaRes = await pool.query(
+      `SELECT m.*, g.nombre AS grupo_nombre 
+       FROM memorias m
+       LEFT JOIN grupos g ON m.grupo_id = g.id
+       WHERE m.id = $1`, 
+      [id]
+    );
     
     if (memoriaRes.rows.length === 0) return null;
     const memoria = memoriaRes.rows[0];
@@ -37,10 +43,14 @@ export class MemoriaModel {
                 r.ciudad AS ciudad, 
                 r.tipo AS reunion_tipo, 
                 r.pais AS pais,
-                p.nombre AS expositor_nombre
+                p.nombre AS expositor_nombre,
+                m.anio AS memoria_anio,
+                g.nombre AS grupo_nombre
          FROM trabajos_congresos tc
          LEFT JOIN reuniones r ON tc.reunion_id = r.id
          LEFT JOIN personal p ON tc.expositor_id = p.id
+         LEFT JOIN memorias m ON tc.memoria_id = m.id
+         LEFT JOIN grupos g ON m.grupo_id = g.id
          WHERE tc.memoria_id = $1
          ORDER BY tc.fecha_presentacion DESC`,
         [id]

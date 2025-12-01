@@ -2,6 +2,7 @@
 
 import Sidebar from "@/app/components/sidebar";
 import { useEffect, useState } from "react";
+import { Toast } from '@/app/lib/swal';
 import {
   HiOutlineSearch,
   HiOutlineTrash,
@@ -67,14 +68,28 @@ function UsuariosPage() {
 
 
   async function agregarUsuario(data: any): Promise<void> {
-    await fetch('/api/usuario/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-      credentials: 'include'
-    });
-    fetchData();
-    setOpenNuevo(false);
+    try {
+      const res = await fetch('/api/usuario/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+      const result = await res.json();
+      if (res.ok && (result.success || res.status === 201)) {
+        await Toast.fire({ icon: 'success', title: 'Usuario creado con éxito' });
+        fetchData();
+        setOpenNuevo(false);
+      } else {
+        // fallback: still refresh and close
+        fetchData();
+        setOpenNuevo(false);
+      }
+    } catch (e: any) {
+      console.error('Error creando usuario', e);
+      fetchData();
+      setOpenNuevo(false);
+    }
   }
 
   async function eliminarUsuario(): Promise<void> {

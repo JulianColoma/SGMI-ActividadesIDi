@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Hint from "./alerts/Hint";
 
 export default function ModalProyectoDatos({
   open,
@@ -21,6 +22,7 @@ export default function ModalProyectoDatos({
   const [fecha_inicio, setFechaInicio] = useState("");
   const [fecha_fin, setFechaFin] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
 
   // When initialData (for edit) is provided, populate local state
   // Also reset when modal opens/closes
@@ -62,10 +64,21 @@ export default function ModalProyectoDatos({
             <input
               type="text"
               placeholder="Ej: Investigación aplicada"
-              className="input-base mt-1"
+              className={`input-base mt-1 ${
+                fieldErrors.tipo
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : ''
+              }`}
               value={tipo}
               onChange={(e) => setTipo(e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!tipo || !tipo.trim()) errs.tipo = 'El tipo es obligatorio';
+                else delete errs.tipo;
+                setFieldErrors(errs);
+              }}
             />
+            {fieldErrors.tipo && <Hint show={true} message={fieldErrors.tipo} type="error" />}
           </div>
 
           {/* Código */}
@@ -86,10 +99,21 @@ export default function ModalProyectoDatos({
             <input
               type="text"
               placeholder="Nombre..."
-              className="input-base mt-1"
+              className={`input-base mt-1 ${
+                fieldErrors.nombre
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : ''
+              }`}
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!nombre || !nombre.trim()) errs.nombre = 'El nombre del proyecto es obligatorio';
+                else delete errs.nombre;
+                setFieldErrors(errs);
+              }}
             />
+            {fieldErrors.nombre && <Hint show={true} message={fieldErrors.nombre} type="error" />}
           </div>
 
           {/* Fecha Inicio */}
@@ -97,10 +121,22 @@ export default function ModalProyectoDatos({
             <label className="font-medium text-black">Fecha de Inicio</label>
             <input
               type="date"
-              className="input-base mt-1"
+              className={`input-base mt-1 ${
+                fieldErrors.fecha_inicio
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : ''
+              }`}
               value={fecha_inicio}
               onChange={(e) => setFechaInicio(e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!fecha_inicio) errs.fecha_inicio = 'La fecha de inicio es obligatoria';
+                else if (fecha_fin && new Date(fecha_inicio) > new Date(fecha_fin)) errs.fecha_inicio = 'La fecha de inicio no puede ser posterior a la de fin';
+                else delete errs.fecha_inicio;
+                setFieldErrors(errs);
+              }}
             />
+            {fieldErrors.fecha_inicio && <Hint show={true} message={fieldErrors.fecha_inicio} type="error" />}
           </div>
 
           {/* Fecha Fin */}
@@ -108,10 +144,22 @@ export default function ModalProyectoDatos({
             <label className="font-medium text-black">Fecha de Fin</label>
             <input
               type="date"
-              className="input-base mt-1"
+              className={`input-base mt-1 ${
+                fieldErrors.fecha_fin
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : ''
+              }`}
               value={fecha_fin}
               onChange={(e) => setFechaFin(e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!fecha_fin) errs.fecha_fin = 'La fecha de fin es obligatoria';
+                else if (fecha_inicio && new Date(fecha_fin) < new Date(fecha_inicio)) errs.fecha_fin = 'La fecha de fin no puede ser anterior a la de inicio';
+                else delete errs.fecha_fin;
+                setFieldErrors(errs);
+              }}
             />
+            {fieldErrors.fecha_fin && <Hint show={true} message={fieldErrors.fecha_fin} type="error" />}
           </div>
         </div>
 
@@ -129,7 +177,15 @@ export default function ModalProyectoDatos({
         <div className="flex justify-end mt-6">
           <button
             className="px-10 py-3 rounded-md bg-[#00c9a7] text-white font-medium text-lg hover:bg-[#00b197]"
-            onClick={() =>
+            onClick={() => {
+              const errs: Record<string,string> = {};
+              if (!tipo || !tipo.trim()) errs.tipo = 'El tipo es obligatorio';
+              if (!nombre || !nombre.trim()) errs.nombre = 'El nombre del proyecto es obligatorio';
+              if (!fecha_inicio) errs.fecha_inicio = 'La fecha de inicio es obligatoria';
+              if (!fecha_fin) errs.fecha_fin = 'La fecha de fin es obligatoria';
+              if (fecha_inicio && fecha_fin && new Date(fecha_inicio) > new Date(fecha_fin)) errs.fecha_inicio = 'La fecha de inicio no puede ser posterior a la de fin';
+              if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+              setFieldErrors({});
               onNext({
                 tipo,
                 codigo,
@@ -138,7 +194,7 @@ export default function ModalProyectoDatos({
                 fecha_fin,
                 descripcion,
               })
-            }
+            }}
           >
             Siguiente
           </button>

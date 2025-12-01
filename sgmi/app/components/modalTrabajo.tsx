@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Toast } from '@/app/lib/swal';
+import Hint from "./alerts/Hint";
 
 // Interfaces para los dropdowns
 interface Memoria {
@@ -84,6 +86,7 @@ export default function ModalTrabajo({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // 1. Cargar la lista de grupos y memorias al abrir
   useEffect(() => {
@@ -107,9 +110,9 @@ export default function ModalTrabajo({
 
   // 2. Manejar la precarga de datos (Modo Edición) para los Dropdowns
   useEffect(() => {
-    if (open && initialData) {
+    if (open && initialData && grupos.length > 0) {
       // Lógica para preseleccionar los dropdowns si ya hay una memoria asignada
-      if (initialData.memoria_id && grupos.length > 0) {
+      if (initialData.memoria_id) {
         // Buscamos a qué grupo pertenece esta memoria_id
         const grupoPadre = grupos.find((g) =>
           g.memorias.some((m) => m.id === initialData.memoria_id)
@@ -136,6 +139,21 @@ export default function ModalTrabajo({
   const handleSave = async (e?: any) => {
     try {
       setError(null);
+      setFieldErrors({});
+
+      // Validaciones
+      const errs: Record<string, string> = {};
+      if (!form.titulo || !String(form.titulo).trim()) errs.titulo = "El título es obligatorio";
+      if (!form.nombreReunion || !String(form.nombreReunion).trim()) errs.nombreReunion = "El nombre de la reunión es obligatorio";
+      if (!selectedMemoriaId) errs.memoria_id = "Asigna una memoria al trabajo";
+      if (tipo === "internacional" && (!form.pais || !String(form.pais).trim())) errs.pais = "Indica el país para reuniones internacionales";
+
+      if (Object.keys(errs).length) {
+        setFieldErrors(errs);
+        // don't proceed
+        return;
+      }
+
       setLoading(true);
 
       // Preparar payload
@@ -175,6 +193,18 @@ export default function ModalTrabajo({
         setError(data.error || data.message || "Error al guardar");
         setLoading(false);
         return;
+      }
+
+      // Mostrar alerta de éxito según creación o edición
+      const accion = isEdit ? 'actualizado' : 'creado';
+      try {
+        await Toast.fire({
+          icon: 'success',
+          title: `Trabajo ${accion} con éxito`,
+          timer: 1200
+        });
+      } catch (e) {
+        // ignore
       }
 
       onSave(data);
@@ -254,6 +284,7 @@ export default function ModalTrabajo({
                 </option>
               ))}
             </select>
+            {fieldErrors.memoria_id && <Hint show={true} message={fieldErrors.memoria_id} type="error" />}
           </div>
 
           {/* Dropdown 2: Memoria */}
@@ -262,7 +293,11 @@ export default function ModalTrabajo({
               Seleccionar Memoria
             </label>
             <select
-              className="input-base mt-1 w-full p-2 border border-gray-300 rounded-md disabled:bg-gray-200 disabled:text-gray-500"
+              className={`input-base mt-1 w-full p-2 rounded-md disabled:bg-gray-200 disabled:text-gray-500 ${
+                fieldErrors.memoria_id
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : 'border border-gray-300'
+              }`}
               value={selectedMemoriaId}
               onChange={(e) => setSelectedMemoriaId(Number(e.target.value))}
               disabled={!selectedGrupoId}
@@ -281,22 +316,39 @@ export default function ModalTrabajo({
                 </option>
               ))}
             </select>
+            {fieldErrors.memoria_id && <Hint show={true} message={fieldErrors.memoria_id} type="error" />}
           </div>
-          {/* NOMBRE REUNIÓN */}
+          {/* NOMBRE REUNI\u00d3N */}
           <div>
             <label className="font-semibold text-black">
-              Nombre de la Reunión
+              Nombre de la Reunion
             </label>
             <input
-              className="input-base mt-1"
+              className={`input-base mt-1 ${
+                fieldErrors.nombreReunion
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : ''
+              }`}
               placeholder={
                 tipo === "nacional"
                   ? "Congreso"
-                  : "Nombre de la reunión internacional"
+                  : "Nombre de la reunion internacional"
               }
               value={form.nombreReunion}
               onChange={(e) => handleChange("nombreReunion", e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!form.nombreReunion || !String(form.nombreReunion).trim()) {
+                  errs.nombreReunion = 'El nombre de la reunion es obligatorio';
+                } else {
+                  delete errs.nombreReunion;
+                }
+                setFieldErrors(errs);
+              }}
             />
+            {fieldErrors.nombreReunion && (
+              <Hint show={true} message={fieldErrors.nombreReunion} type="error" />
+            )}
           </div>
 
           {/* CIUDAD */}
@@ -333,17 +385,33 @@ export default function ModalTrabajo({
             />
           </div>
 
-          {/* TÍTULO */}
+          {/* T\u00cdTULO */}
           <div className="col-span-2">
             <label className="font-semibold text-black">
-              Título del Trabajo
+              Titulo del Trabajo
             </label>
             <input
-              className="input-base mt-1"
-              placeholder="Título"
+              className={`input-base mt-1 ${
+                fieldErrors.titulo
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : ''
+              }`}
+              placeholder="Titulo"
               value={form.titulo}
               onChange={(e) => handleChange("titulo", e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!form.titulo || !String(form.titulo).trim()) {
+                  errs.titulo = 'El titulo es obligatorio';
+                } else {
+                  delete errs.titulo;
+                }
+                setFieldErrors(errs);
+              }}
             />
+            {fieldErrors.titulo && (
+              <Hint show={true} message={fieldErrors.titulo} type="error" />
+            )}
           </div>
 
           {/* PAÍS */}
@@ -358,11 +426,27 @@ export default function ModalTrabajo({
               />
             ) : (
               <input
-                className="input-base mt-1"
+                className={`input-base mt-1 ${
+                  fieldErrors.pais
+                    ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                    : ''
+                }`}
                 placeholder="España"
                 value={form.pais}
                 onChange={(e) => handleChange("pais", e.target.value)}
+                onBlur={() => {
+                  const errs = { ...fieldErrors };
+                  if (tipo === 'internacional' && (!form.pais || !String(form.pais).trim())) {
+                    errs.pais = 'Indica el país para reuniones internacionales';
+                  } else {
+                    delete errs.pais;
+                  }
+                  setFieldErrors(errs);
+                }}
               />
+            )}
+            {fieldErrors.pais && (
+              <Hint show={true} message={fieldErrors.pais} type="error" />
             )}
           </div>
         </div>
@@ -372,11 +456,9 @@ export default function ModalTrabajo({
         <div className="flex justify-end mt-6">
           <button
             onClick={handleSave}
-            disabled={loading || !selectedMemoriaId} // Deshabilitamos si no hay memoria
+            disabled={loading}
             className={`px-8 py-3 rounded-md text-white font-medium text-lg ${
-              loading || !selectedMemoriaId
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#00c9a7] hover:bg-[#00b197]"
+              loading ? "bg-gray-400 cursor-not-allowed" : "bg-[#00c9a7] hover:bg-[#00b197]"
             }`}
           >
             {loading ? "Guardando..." : "Guardar Trabajo"}

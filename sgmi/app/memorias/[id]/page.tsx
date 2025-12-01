@@ -15,6 +15,7 @@ import ModalProyectoDatos from "@/app/components/modalProyectorsDatos";
 import NewProyecto from "@/app/components/newproyecto";
 import ModalVerTrabajo from "@/app/components/modalVerTrabajo";
 import ModalVerProyecto from "@/app/components/modalVerProyecto";
+import Swal from 'sweetalert2';
 import UserPill from "@/app/components/userPill";
 import { withAuth } from "@/app/withAuth";
 import ConfirmModal from "@/app/components/alerts/ConfrimModal";
@@ -183,8 +184,13 @@ function MemoriaDetallePage() {
 
     // Paso 1 -> Paso 2 (Guardar datos parciales y avanzar)
     const handleNextProyecto = (dataPaso1: any) => {
-        // dataPaso1 trae { nombre, codigo, tipo } del ModalProyectoDatos
-        setProyectoDataTemp({ ...proyectoDataTemp, ...dataPaso1 });
+        // dataPaso1 trae { nombre, codigo, tipo, fecha_inicio, fecha_fin, descripcion } del ModalProyectoDatos
+        setProyectoDataTemp({ 
+            ...proyectoDataTemp, 
+            ...dataPaso1,
+            grupo_id: memoria?.grupo_id,
+            memoria_id: Number(id)
+        });
         setModalProyectoDatos(false);
         setModalProyectoDetalles(true); // Abrir Paso 2
     };
@@ -195,6 +201,7 @@ function MemoriaDetallePage() {
             const payload = {
                 ...proyectoDataTemp,
                 ...dataPaso2,
+                grupo_id: memoria?.grupo_id,
                 memoria_id: Number(id),
             };
 
@@ -215,6 +222,13 @@ function MemoriaDetallePage() {
             if (!data.success) {
                 showError("Error al guardar", data.error || "No se pudo guardar el proyecto");
                 return;
+            }
+
+            // Mostrar alerta de éxito
+            try {
+                await Toast.fire({ icon: 'success', title: isEdit ? 'Proyecto actualizado con éxito' : 'Proyecto creado con éxito' });
+            } catch (e) {
+                // ignore
             }
 
             fetchMemoria();

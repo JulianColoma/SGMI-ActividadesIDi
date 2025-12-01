@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Hint from "../components/alerts/Hint";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,17 +14,22 @@ export default function RegisterPage() {
   const [password2, setPassword2] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
   const [success, setSuccess] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setFieldErrors({});
 
-    if (password !== password2) {
-      setError("Las contraseñas no coinciden");
-      return;
-    }
+    const errs: Record<string,string> = {};
+    if (!nombreCompleto || !nombreCompleto.trim()) errs.nombreCompleto = 'El nombre es obligatorio';
+    if (!email || !email.trim()) errs.email = 'El email es obligatorio';
+    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errs.email = 'Email inválido';
+    if (!password || password.length < 6) errs.password = 'La contraseña debe tener al menos 6 caracteres';
+    if (password !== password2) errs.password2 = 'Las contraseñas no coinciden';
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
 
     setLoading(true);
 
@@ -85,11 +91,22 @@ export default function RegisterPage() {
             <input
               type="text"
               placeholder="ej: Juan Carlos García"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className={`w-full rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 ${
+                fieldErrors.nombreCompleto
+                  ? 'border-2 border-red-500 focus:ring-red-500'
+                  : 'border border-gray-300 focus:ring-gray-400'
+              }`}
               value={nombreCompleto}
               onChange={(e) => setNombreCompleto(e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!nombreCompleto || !nombreCompleto.trim()) errs.nombreCompleto = 'El nombre es obligatorio';
+                else delete errs.nombreCompleto;
+                setFieldErrors(errs);
+              }}
               required
             />
+            {fieldErrors.nombreCompleto && <Hint show={true} message={fieldErrors.nombreCompleto} type="error" />}
           </div>
 
           <div>
@@ -97,11 +114,23 @@ export default function RegisterPage() {
             <input
               type="email"
               placeholder="ejemplo@email.com"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className={`w-full rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 ${
+                fieldErrors.email
+                  ? 'border-2 border-red-500 focus:ring-red-500'
+                  : 'border border-gray-300 focus:ring-gray-400'
+              }`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!email || !email.trim()) errs.email = 'El email es obligatorio';
+                else if (!/^[^\@\s]+@[^\@\s]+\.[^\@\s]+$/.test(email)) errs.email = 'Email inválido';
+                else delete errs.email;
+                setFieldErrors(errs);
+              }}
               required
             />
+            {fieldErrors.email && <Hint show={true} message={fieldErrors.email} type="error" />}
           </div>
 
           <div>
@@ -111,11 +140,22 @@ export default function RegisterPage() {
             <input
               type="password"
               placeholder="ejemplo1234"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className={`w-full rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 ${
+                fieldErrors.password
+                  ? 'border-2 border-red-500 focus:ring-red-500'
+                  : 'border border-gray-300 focus:ring-gray-400'
+              }`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!password || password.length < 6) errs.password = 'La contraseña debe tener al menos 6 caracteres';
+                else delete errs.password;
+                setFieldErrors(errs);
+              }}
               required
             />
+            {fieldErrors.password && <Hint show={true} message={fieldErrors.password} type="error" />}
           </div>
 
           <div>
@@ -124,11 +164,22 @@ export default function RegisterPage() {
             </label>
             <input
               type="password"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className={`w-full rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 ${
+                fieldErrors.password2
+                  ? 'border-2 border-red-500 focus:ring-red-500'
+                  : 'border border-gray-300 focus:ring-gray-400'
+              }`}
               value={password2}
               onChange={(e) => setPassword2(e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (password !== password2) errs.password2 = 'Las contraseñas no coinciden';
+                else delete errs.password2;
+                setFieldErrors(errs);
+              }}
               required
             />
+            {fieldErrors.password2 && <Hint show={true} message={fieldErrors.password2} type="error" />}
           </div>
 
           {error && (

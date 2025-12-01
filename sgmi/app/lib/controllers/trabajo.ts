@@ -60,7 +60,13 @@ export class TrabajoController {
       }
 
       const r = await TrabajoModel.create(cleanPayload);
-      return { success: true, data: r, message: "Trabajo creado" };
+      
+      // Buscar el registro con los JOINs enriquecidos
+      const enriched = await TrabajoModel.findById(r.id);
+      const allTrabajos = await TrabajoModel.findAll();
+      const full = allTrabajos.find(t => t.id === r.id);
+      
+      return { success: true, data: full || r, message: "Trabajo creado" };
     } catch (e: any) {
       return { success: false, error: e.message };
     }
@@ -145,7 +151,12 @@ export class TrabajoController {
 
       const updated = await TrabajoModel.update(id, cleanPayload);
       if (!updated) return { success: false, error: "No se pudo actualizar" };
-      return { success: true, data: updated };
+      
+      // Buscar el registro con los JOINs enriquecidos
+      const allTrabajos = await TrabajoModel.findAll();
+      const full = allTrabajos.find(t => t.id === id);
+      
+      return { success: true, data: full || updated };
     } catch (e: any) {
       return { success: false, error: e.message };
     }

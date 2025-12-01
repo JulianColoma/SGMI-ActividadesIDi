@@ -10,6 +10,7 @@ import { withAuth } from "../withAuth";
 import { useEffect, useState } from "react";
 import ErrorModal from "../components/alerts/ErrorModal";
 import ConfirmModal from "../components/alerts/ConfrimModal";
+import { Toast, ModalSwal } from '@/app/lib/swal';
 
 
 function ProyectosPage() {
@@ -98,7 +99,7 @@ function ProyectosPage() {
 
       // Quick client-side validation for required fields
       if (!dataFinal.tipo || !dataFinal.nombre || !dataFinal.fecha_inicio) {
-        alert('Completa los campos obligatorios: tipo, nombre y fecha de inicio.');
+        await Toast.fire({ icon: 'warning', title: 'Completa los campos obligatorios', text: 'Tipo, nombre y fecha de inicio son requeridos.', timer: 1600 });
         return;
       }
       // Si hay editId, hacemos PUT a /api/investigacion/:id en lugar de POST
@@ -121,12 +122,12 @@ function ProyectosPage() {
         return;
       }
 
-      alert(isEditing ? "Proyecto actualizado con éxito" : "Proyecto guardado con éxito");
+      await Toast.fire({ icon: 'success', title: isEditing ? 'Proyecto actualizado con éxito' : 'Proyecto guardado con éxito' });
       setModalDetalles(false);
       setEditId(null);
       loadProyectos(); // recarga la tabla
     } catch (e) {
-      alert("Error al conectar con el servidor");
+      await ModalSwal.fire({ icon: 'error', title: 'Error al conectar', text: 'No se pudo conectar con el servidor.' });
     }
   }
 

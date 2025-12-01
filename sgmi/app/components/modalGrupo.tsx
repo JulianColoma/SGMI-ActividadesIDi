@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Hint from "./alerts/Hint";
 
 interface ModalAddGrupoProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface ModalAddGrupoProps {
 export default function ModalAddGrupo({ open, onClose, onSave }: ModalAddGrupoProps) {
   
   const [nombre, setNombre] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
 
   // Reiniciar campos cuando se abre el modal
   useEffect(() => {
@@ -22,10 +24,10 @@ export default function ModalAddGrupo({ open, onClose, onSave }: ModalAddGrupoPr
   if (!open) return null;
 
   const handleSave = () => {
-    if (!nombre.trim()) {
-        alert("El nombre es obligatorio");
-        return;
-    }
+    const errs: Record<string,string> = {};
+    if (!nombre || !nombre.trim()) errs.nombre = 'El nombre del grupo es obligatorio';
+    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     onSave({ nombre });
   };
 
@@ -51,11 +53,22 @@ export default function ModalAddGrupo({ open, onClose, onSave }: ModalAddGrupoPr
             <label className="font-medium text-gray-700">Nombre del Grupo</label>
             <input
               type="text"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
+              className={`w-full rounded-md px-3 py-2 mt-1 focus:outline-none focus:ring-1 ${
+                fieldErrors.nombre
+                  ? 'border-2 border-red-500 focus:ring-red-500'
+                  : 'border border-gray-300 focus:ring-[#00c9a7]'
+              }`}
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
+              onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!nombre || !nombre.trim()) errs.nombre = 'El nombre del grupo es obligatorio';
+                else delete errs.nombre;
+                setFieldErrors(errs);
+              }}
               placeholder="Ej: Grupo de Trabajo 2024..."
             />
+            {fieldErrors.nombre && <Hint show={true} message={fieldErrors.nombre} type="error" />}
           </div>
 
         </div>
