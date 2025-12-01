@@ -8,7 +8,9 @@ import UserPill from "../components/userPill";
 import { withAuth } from "../withAuth";
 // Importamos ambos modales
 import ModalAddMemoria from "@/app/components/modalMemoria";
-import ModalAddGrupo from "@/app/components/modalGrupo"; 
+import ModalAddGrupo from "@/app/components/modalGrupo";
+import ErrorModal from "@/app/components/alerts/ErrorModal";
+import ConfirmModal from "@/app/components/alerts/ConfrimModal";
 
 interface Memoria {
   id: number;
@@ -37,6 +39,16 @@ function MemoriasPage() {
   // Estado para Modal Grupo (NUEVO)
   const [isModalGrupoOpen, setIsModalGrupoOpen] = useState(false);
 
+  //Estados Alert
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorDesc, setErrorDesc] = useState("");
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmAction, setConfirmAction] = useState<null | (() => void)>(null);
+
+
   const fetchDatos = async () => {
     try {
       setLoading(true);
@@ -58,49 +70,58 @@ function MemoriasPage() {
   }, []);
 
   // --- Handlers para Grupos ---
-
-  const handleDeleteGrupo = async (grupoId: number) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este grupo y todas sus memorias?")) return;
-    try { 
+  const deleteGrupo = async (grupoId: number) => {
+    try {
       const res = await fetch(`/api/grupo/${grupoId}`, {
         method: "DELETE",
         credentials: "include",
       });
+
       if (!res.ok) {
-        const errorData = await res.json();
-        alert("Error al eliminar el grupo: " + (errorData.error || "Desconocido"));
+        const err = await res.json();
+        setErrorTitle("Error al eliminar grupo");
+        setErrorDesc(err.error || "No se pudo eliminar el grupo.");
+        setErrorOpen(true);
         return;
       }
+
       await fetchDatos();
-    } catch (error) {
-      console.error(error);
-      alert("Error de conexión al eliminar el grupo.");
+    } catch {
+      setErrorTitle("Error de conexión");
+      setErrorDesc("No se pudo contactar al servidor.");
+      setErrorOpen(true);
     }
   };
 
- 
+  const handleDeleteGrupo = (grupoId: number) => {
+    setConfirmMessage("¿Deseas eliminar este grupo y todas sus memorias?");
+    setConfirmAction(() => () => deleteGrupo(grupoId));
+    setConfirmOpen(true);
+  };
+
+
   const handleSaveGrupo = async (data: { nombre: string }) => {
     try {
       const res = await fetch("/api/grupo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombre: data.nombre,
-        }),
+        body: JSON.stringify({ nombre: data.nombre }),
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        alert("Error al crear grupo: " + (errorData.error || "Desconocido"));
+        const err = await res.json();
+        setErrorTitle("Error al crear grupo");
+        setErrorDesc(err.error || "No se pudo crear el grupo.");
+        setErrorOpen(true);
         return;
       }
 
-      // Éxito: Cerrar modal y recargar datos
       setIsModalGrupoOpen(false);
       await fetchDatos();
-    } catch (error) {
-      console.error(error);
-      alert("Error de conexión al guardar el grupo.");
+    } catch {
+      setErrorTitle("Error de conexión");
+      setErrorDesc("No se pudo contactar al servidor.");
+      setErrorOpen(true);
     }
   };
 
@@ -111,29 +132,38 @@ function MemoriasPage() {
     setIsModalMemoriaOpen(true);
   };
 
-  const handleDeleteMemoria = async (memoriaId: number) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar esta memoria?")) return;
+  const deleteMemoria = async (memoriaId: number) => {
     try {
       const res = await fetch(`/api/memoria/${memoriaId}`, {
         method: "DELETE",
         credentials: "include",
       });
+
       if (!res.ok) {
-        const errorData = await res.json();
-        alert("Error al eliminar: " + (errorData.error || "Desconocido"));
+        const err = await res.json();
+        setErrorTitle("Error al eliminar memoria");
+        setErrorDesc(err.error || "No se pudo eliminar la memoria.");
+        setErrorOpen(true);
         return;
       }
+
       await fetchDatos();
-    } catch (error) {
-      console.error(error);
-      alert("Error de conexión al eliminar la memoria.");
+    } catch {
+      setErrorTitle("Error de conexión");
+      setErrorDesc("No se pudo contactar al servidor.");
+      setErrorOpen(true);
     }
   };
 
-  const handleSaveMemoria = async (data: {
-    anio: number;
-    contenido: string;
-  }) => {
+  // abrir confirmación
+  const handleDeleteMemoria = (memoriaId: number) => {
+    setConfirmMessage("¿Deseas eliminar esta memoria?");
+    setConfirmAction(() => () => deleteMemoria(memoriaId));
+    setConfirmOpen(true);
+  };
+
+
+  const handleSaveMemoria = async (data: { anio: number; contenido: string }) => {
     if (!grupoSeleccionadoId) return;
 
     try {
@@ -148,17 +178,20 @@ function MemoriasPage() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        alert("Error al guardar: " + (errorData.error || "Desconocido"));
+        const err = await res.json();
+        setErrorTitle("Error al guardar memoria");
+        setErrorDesc(err.error || "No se pudo guardar.");
+        setErrorOpen(true);
         return;
       }
 
       setIsModalMemoriaOpen(false);
       setGrupoSeleccionadoId(null);
       await fetchDatos();
-    } catch (error) {
-      console.error(error);
-      alert("Error de conexión al guardar la memoria.");
+    } catch {
+      setErrorTitle("Error de conexión");
+      setErrorDesc("No se pudo contactar al servidor.");
+      setErrorOpen(true);
     }
   };
 
@@ -181,7 +214,7 @@ function MemoriasPage() {
         <div className="flex items-center justify-between mb-6">
           <div className="relative w-80">
             <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-        
+
             <input
               type="text"
               placeholder="Buscar grupo"
@@ -189,7 +222,7 @@ function MemoriasPage() {
               className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
             />
           </div>
-        
+
           <button
             onClick={() => setIsModalGrupoOpen(true)}
             className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] shadow-sm hover:bg-[#00b197]"
@@ -207,9 +240,9 @@ function MemoriasPage() {
                 <span>{grupo.nombre}</span>
                 <span>
                   <HiOutlineTrash
-                      className="w-6 h-6 text-grey-500 cursor-pointer hover:scale-110 transition-transform"
+                    className="w-6 h-6 text-grey-500 cursor-pointer hover:scale-110 transition-transform"
                     title="Eliminar grupo"
-                    onClick={()=> handleDeleteGrupo(grupo.id)}
+                    onClick={() => handleDeleteGrupo(grupo.id)}
                   />
                 </span>
               </div>
@@ -232,7 +265,7 @@ function MemoriasPage() {
                       />
 
                       <HiOutlineTrash
-                          className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
+                        className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
                         title="Eliminar memoria"
                         onClick={() => handleDeleteMemoria(mem.id)}
                       />
@@ -265,11 +298,27 @@ function MemoriasPage() {
       />
 
       {/* Modal para Agregar Grupo */}
-      <ModalAddGrupo 
+      <ModalAddGrupo
         open={isModalGrupoOpen}
         onClose={() => setIsModalGrupoOpen(false)}
         onSave={handleSaveGrupo}
       />
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          if (confirmAction) confirmAction();
+          setConfirmOpen(false);
+        }}
+        message={confirmMessage}
+      />
+      <ErrorModal
+        open={errorOpen}
+        onClose={() => setErrorOpen(false)}
+        title={errorTitle}
+        description={errorDesc}
+      />
+
     </div>
   );
 }

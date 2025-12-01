@@ -11,12 +11,14 @@ import {
 } from "react-icons/hi";
 
 import ModalTrabajo from "@/app/components/modalTrabajo";
-import ModalProyectoDatos from "@/app/components/modalProyectorsDatos"; 
+import ModalProyectoDatos from "@/app/components/modalProyectorsDatos";
 import NewProyecto from "@/app/components/newproyecto";
 import ModalVerTrabajo from "@/app/components/modalVerTrabajo";
 import ModalVerProyecto from "@/app/components/modalVerProyecto";
 import UserPill from "@/app/components/userPill";
 import { withAuth } from "@/app/withAuth";
+import ConfirmModal from "@/app/components/alerts/ConfrimModal";
+import ErrorModal from "@/app/components/alerts/ErrorModal";
 
 function MemoriaDetallePage() {
     const { id } = useParams();
@@ -29,7 +31,7 @@ function MemoriaDetallePage() {
 
     // TABS
     const [tab, setTab] = useState<"trabajos" | "proyectos">("trabajos");
-    
+
     // FILTROS Y ESTADOS
     const [busquedaProyecto, setBusquedaProyecto] = useState("");
     const [busquedaTrabajo, setBusquedaTrabajo] = useState("");
@@ -39,7 +41,23 @@ function MemoriaDetallePage() {
     const [openTrabajo, setOpenTrabajo] = useState(false);
     const [modalProyectoDatos, setModalProyectoDatos] = useState(false);
     const [modalProyectoDetalles, setModalProyectoDetalles] = useState(false);
-    
+
+    //MODALES - ALERTAS
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmMessage, setConfirmMessage] = useState("");
+    const [confirmAction, setConfirmAction] = useState<null | (() => void)>(null);
+
+    const [errorOpen, setErrorOpen] = useState(false);
+    const [errorTitle, setErrorTitle] = useState("");
+    const [errorDesc, setErrorDesc] = useState("");
+
+    const showError = (title: string, desc: string) => {
+        setErrorTitle(title);
+        setErrorDesc(desc);
+        setErrorOpen(true);
+    };
+
+
     // DATOS PARA EDICIÓN
     const [editTrabajoData, setEditTrabajoData] = useState<any>(null); // Datos para editar trabajo
     const [editProyectoData, setEditProyectoData] = useState<any>(null); // Datos completos del proyecto a editar
@@ -76,7 +94,7 @@ function MemoriaDetallePage() {
     }, [id]);
 
     // --- MANEJADORES DE TRABAJOS ---
-    
+
     // Abrir modal para crear
     const handleOpenCreateTrabajo = () => {
         setEditTrabajoData(null); // Limpiamos edición
@@ -91,19 +109,25 @@ function MemoriaDetallePage() {
     };
 
     // Eliminar trabajo
-    const handleDeleteTrabajo = async (trabajoId: number) => {
-        if (!confirm("¿Estás seguro de eliminar este trabajo?")) return;
+
+    const deleteTrabajo = async (trabajoId: number) => {
         try {
             const res = await fetch(`/api/trabajo/${trabajoId}`, { method: "DELETE" });
             const data = await res.json();
-            if (data.success) {
-                await fetchMemoria();
-            } else {
-                alert("Error al eliminar: " + data.error);
+            if (!data.success) {
+                showError("Error al eliminar", data.error || "No se pudo eliminar el trabajo");
+                return;
             }
-        } catch (error) {
-            alert("Error de conexión");
+            fetchMemoria();
+        } catch {
+            showError("Error de conexión", "No se pudo contactar al servidor.");
         }
+    };
+
+    const handleDeleteTrabajo = (trabajoId: number) => {
+        setConfirmMessage("¿Deseas eliminar este trabajo?");
+        setConfirmAction(() => () => deleteTrabajo(trabajoId));
+        setConfirmOpen(true);
     };
 
     // Callback al guardar (El modal hace el fetch, aquí solo refrescamos)
@@ -134,20 +158,27 @@ function MemoriaDetallePage() {
     };
 
     // Eliminar proyecto
-    const handleDeleteProyecto = async (proyectoId: number) => {
-        if (!confirm("¿Estás seguro de eliminar este proyecto?")) return;
+    
+    const deleteProyecto = async (proyectoId: number) => {
         try {
-            // Asumiendo ruta /api/investigacion para proyectos
             const res = await fetch(`/api/investigacion/${proyectoId}`, { method: "DELETE" });
             const data = await res.json();
-            if (data.success) {
-                await fetchMemoria();
-            } else {
-                alert("Error al eliminar: " + data.error);
+
+            if (!data.success) {
+                showError("Error al eliminar", data.error || "No se pudo eliminar el proyecto");
+                return;
             }
-        } catch (error) {
-            alert("Error de conexión");
+
+            fetchMemoria();
+        } catch {
+            showError("Error de conexión", "No se pudo contactar al servidor.");
         }
+    };
+
+    const handleDeleteProyecto = (proyectoId: number) => {
+        setConfirmMessage("¿Deseas eliminar este proyecto?");
+        setConfirmAction(() => () => deleteProyecto(proyectoId));
+        setConfirmOpen(true);
     };
 
     // Paso 1 -> Paso 2 (Guardar datos parciales y avanzar)
@@ -161,16 +192,17 @@ function MemoriaDetallePage() {
     // Paso 2 -> Guardar Final (Hacer el POST o PUT)
     const handleFinalSaveProyecto = async (dataPaso2: any) => {
         try {
-            // Combinamos todo: Datos Paso 1 + Datos Paso 2 + memoria_id
             const payload = {
                 ...proyectoDataTemp,
                 ...dataPaso2,
-                memoria_id: Number(id), // Forzamos la vinculación a esta memoria
+                memoria_id: Number(id),
             };
 
             const isEdit = !!editProyectoData?.id;
-            const url = isEdit ? `/api/investigacion/${editProyectoData.id}` : '/api/investigacion';
-            const method = isEdit ? 'PUT' : 'POST';
+            const url = isEdit
+                ? `/api/investigacion/${editProyectoData.id}`
+                : "/api/investigacion";
+            const method = isEdit ? "PUT" : "POST";
 
             const res = await fetch(url, {
                 method,
@@ -180,29 +212,29 @@ function MemoriaDetallePage() {
 
             const data = await res.json();
 
-            if (data.success) {
-                await fetchMemoria();
-                setModalProyectoDetalles(false);
-                setEditProyectoData(null);
-                setProyectoDataTemp({});
-            } else {
-                alert("Error al guardar proyecto: " + (data.error || "Desconocido"));
+            if (!data.success) {
+                showError("Error al guardar", data.error || "No se pudo guardar el proyecto");
+                return;
             }
-        } catch (error) {
-            console.error(error);
-            alert("Error de conexión al guardar proyecto");
+
+            fetchMemoria();
+            setModalProyectoDetalles(false);
+            setEditProyectoData(null);
+            setProyectoDataTemp({});
+        } catch {
+            showError("Error de conexión", "No se pudo contactar al servidor.");
         }
     };
 
     // --- FILTRADO ---
     const trabajosFiltrados = trabajos.filter((t) => {
-        const esInternacional = 
-            t.reunion_tipo === 'INTERNACIONAL' || 
+        const esInternacional =
+            t.reunion_tipo === 'INTERNACIONAL' ||
             (t.pais && t.pais.toLowerCase() !== 'argentina');
         const cumpleModo = modoGlobal ? esInternacional : !esInternacional;
         const q = busquedaTrabajo.toLowerCase();
-        const cumpleBusqueda = 
-            t.titulo?.toLowerCase().includes(q) || 
+        const cumpleBusqueda =
+            t.titulo?.toLowerCase().includes(q) ||
             t.reunion?.toLowerCase().includes(q) ||
             t.expositor_nombre?.toLowerCase().includes(q);
 
@@ -212,7 +244,7 @@ function MemoriaDetallePage() {
     const proyectosFiltrados = proyectos.filter((p) => {
         const q = busquedaProyecto.toLowerCase();
         return (
-            p.nombre?.toLowerCase().includes(q) || 
+            p.nombre?.toLowerCase().includes(q) ||
             p.codigo?.toLowerCase().includes(q) ||
             p.tipo?.toLowerCase().includes(q)
         );
@@ -237,15 +269,15 @@ function MemoriaDetallePage() {
                 {/* HEADER */}
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                         <h1 className="text-3xl font-semibold text-gray-800">
+                        <h1 className="text-3xl font-semibold text-gray-800">
                             Memoria Anual {memoria?.anio}
                         </h1>
                         <p className="text-gray-500 mt-1">
                             {memoria?.contenido || "Sin descripción disponible."}
                         </p>
                     </div>
-                   
-                    <UserPill/>
+
+                    <UserPill />
                 </div>
 
                 {/* TABS */}
@@ -253,8 +285,8 @@ function MemoriaDetallePage() {
                     <button
                         onClick={() => setTab("trabajos")}
                         className={`pb-3 text-sm font-semibold transition ${tab === "trabajos"
-                                ? "text-[#00c9a7] border-b-2 border-[#00c9a7]"
-                                : "text-gray-500 hover:text-gray-700"
+                            ? "text-[#00c9a7] border-b-2 border-[#00c9a7]"
+                            : "text-gray-500 hover:text-gray-700"
                             }`}
                     >
                         Trabajos presentados ({trabajos.length})
@@ -263,8 +295,8 @@ function MemoriaDetallePage() {
                     <button
                         onClick={() => setTab("proyectos")}
                         className={`pb-3 text-sm font-semibold transition ${tab === "proyectos"
-                                ? "text-[#00c9a7] border-b-2 border-[#00c9a7]"
-                                : "text-gray-500 hover:text-gray-700"
+                            ? "text-[#00c9a7] border-b-2 border-[#00c9a7]"
+                            : "text-gray-500 hover:text-gray-700"
                             }`}
                     >
                         Proyectos vinculados ({proyectos.length})
@@ -341,12 +373,12 @@ function MemoriaDetallePage() {
                                             {t.reunion}
                                         </div>
                                         <div className="px-4 py-4 flex justify-center gap-5">
-                                            <HiOutlineEye 
-                                                className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110" 
+                                            <HiOutlineEye
+                                                className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
                                                 onClick={() => setVerTrabajo(t)}
                                                 title="Ver detalle"
                                             />
-                                            <HiOutlineTrash 
+                                            <HiOutlineTrash
                                                 className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
                                                 onClick={() => handleDeleteTrabajo(t.id)}
                                                 title="Eliminar trabajo"
@@ -401,12 +433,12 @@ function MemoriaDetallePage() {
                                         <div className="px-4 py-4 border-r border-gray-300 text-sm">{p.codigo}</div>
                                         <div className="px-4 py-4 border-r border-gray-300 text-sm">{p.tipo}</div>
                                         <div className="px-4 py-4 flex justify-center gap-5">
-                                            <HiOutlineEye 
-                                                className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110" 
+                                            <HiOutlineEye
+                                                className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
                                                 onClick={() => setVerProyecto(p)}
                                                 title="Ver detalle"
                                             />
-                                            <HiOutlineTrash 
+                                            <HiOutlineTrash
                                                 className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
                                                 onClick={() => handleDeleteProyecto(p.id)}
                                                 title="Eliminar proyecto"
@@ -445,7 +477,7 @@ function MemoriaDetallePage() {
                     initialData={editProyectoData || {}} // Si hay edición, precarga datos
                     onClose={() => setModalProyectoDatos(false)}
                     // Asumo que tu ModalProyectoDatos soporta pasarle una función con los datos recolectados
-                    onNext={(dataPaso1: any) => handleNextProyecto(dataPaso1)} 
+                    onNext={(dataPaso1: any) => handleNextProyecto(dataPaso1)}
                 />
             )}
 
@@ -464,12 +496,12 @@ function MemoriaDetallePage() {
             )}
 
             {/* --- MODALES VISUALIZACIÓN --- */}
-            
+
             {verTrabajo && (
-                <ModalVerTrabajo 
-                    open={!!verTrabajo} 
-                    trabajo={verTrabajo} 
-                    onClose={() => setVerTrabajo(null)} 
+                <ModalVerTrabajo
+                    open={!!verTrabajo}
+                    trabajo={verTrabajo}
+                    onClose={() => setVerTrabajo(null)}
                     onEdit={(t) => handleEditTrabajo(t)}
                 />
             )}
@@ -479,9 +511,24 @@ function MemoriaDetallePage() {
                     open={!!verProyecto}
                     proyecto={verProyecto}
                     onClose={() => setVerProyecto(null)}
-                    onEdit={(p:any) => handleEditProyecto(p)}
+                    onEdit={(p: any) => handleEditProyecto(p)}
                 />
             )}
+            <ConfirmModal
+                open={confirmOpen}
+                onClose={() => setConfirmOpen(false)}
+                onConfirm={() => {
+                    if (confirmAction) confirmAction();
+                    setConfirmOpen(false);
+                }}
+                message={confirmMessage}
+            />
+            <ErrorModal
+                open={errorOpen}
+                onClose={() => setErrorOpen(false)}
+                title={errorTitle}
+                description={errorDesc}
+            />
 
         </div>
     );

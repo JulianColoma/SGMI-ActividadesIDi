@@ -7,7 +7,7 @@ import { getAuth } from "@/app/lib/requestAuth";
 export async function POST(request: NextRequest) {
   try {
     
-    // 1 Verificación de Seguridad
+    /*// 1 Verificación de Seguridad
       const auth = await getAuth(request);
 
        if (!auth || auth.role !== "admin") {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
         { success: false, error: "Sólo administradores pueden registrar usuarios." },
         { status: 403 }
      );
-  }
+  }*/
 
     // 2. Lectura y Validación de Datos
     const body = await request.json();

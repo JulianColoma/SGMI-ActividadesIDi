@@ -78,7 +78,7 @@ export default function LoginPage() {
           className="w-full max-w-md bg-white shadow-[0_0_25px_rgba(15,23,42,0.08)] rounded-2xl px-10 py-8 space-y-5 border border-[#f3f4f6]"
         >
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700">Email</label>
             <input
               type="email"
               placeholder="ejemplo@email.com"
@@ -90,7 +90,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium mb-1 text-gray-700">
               Contraseña
             </label>
             <input
