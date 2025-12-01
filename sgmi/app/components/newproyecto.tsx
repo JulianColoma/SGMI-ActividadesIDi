@@ -70,10 +70,7 @@ export default function NewProyecto({
       setLogros(initialData.logros ?? "");
       setDificultades(initialData.dificultades ?? "");
       
-      // Si initialData tiene grupo_id directamente, usarlo
-      if (initialData.grupo_id) {
-        setSelectedGrupoId(initialData.grupo_id);
-      }
+      // Si initialData trae memoria_id, determinamos su grupo padre
      
       if (initialData.memoria_id && grupos.length > 0) {
         // Buscamos a qué grupo pertenece esta memoria_id (para edición)
@@ -238,7 +235,6 @@ export default function NewProyecto({
                 fuente_financiamiento,
                 logros,
                 dificultades,
-                grupo_id: Number(selectedGrupoId),
                 memoria_id: Number(selectedMemoriaId) // Enviamos la memoria vinculada
               })
             }}

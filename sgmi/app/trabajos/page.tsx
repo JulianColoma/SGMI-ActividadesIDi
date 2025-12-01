@@ -104,7 +104,6 @@ function TrabajosPage() {
             <h1 className="text-3xl font-semibold text-gray-800">
               Gestión de Trabajos Presentados en Reuniones
             </h1>
-            <Hint show={true} message={"Consejo: para reuniones internacionales indica el país. Escribe el nombre del expositor libremente."} />
           </div>
 
           <UserPill />

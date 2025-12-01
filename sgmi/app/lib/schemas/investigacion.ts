@@ -10,7 +10,6 @@ export const createInvestigacionSchema = z.object({
   logros: z.string().optional(),
   dificultades: z.string().optional(),
   fuente_financiamiento: z.string().optional(),
-  grupo_id: z.number().int().positive(),
   memoria_id: z.number().int().positive()
 });
 

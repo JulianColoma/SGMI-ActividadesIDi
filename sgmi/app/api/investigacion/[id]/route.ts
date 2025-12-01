@@ -29,7 +29,7 @@ export async function PUT(
 
        if (!auth || auth.role !== "admin") {
         return NextResponse.json(
-        { success: false, error: "Sólo administradores pueden registrar usuarios." },
+        { success: false, error: "Sólo administradores pueden modificar proyectos." },
         { status: 403 }
      );
   }

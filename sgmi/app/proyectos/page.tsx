@@ -275,6 +275,11 @@ function ProyectosPage() {
             </div>
           ))}
         </div>
+        <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
+          <button className="px-2 py-1 hover:bg-gray-100 rounded">←</button>
+          <span className="px-3 py-1 rounded bg-[#27333d] text-white">1</span>
+          <button className="px-2 py-1 hover:bg-gray-100 rounded">→</button>
+        </div>
       </main>
 
       {/* Modal 1: Datos iniciales */}

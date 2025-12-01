@@ -11,7 +11,6 @@ export interface IInvestigacion {
   logros?: string | null;
   dificultades?: string | null;
   fuente_financiamiento?: string;
-  grupo_id: number;
   memoria_id: number;
   fecha_creacion?: Date;
 }
@@ -19,8 +18,8 @@ export interface IInvestigacion {
 export class InvestigacionModel {
   static async create(data: IInvestigacion): Promise<IInvestigacion> {
     const query = `
-      INSERT INTO investigaciones (tipo, codigo, fecha_inicio, fecha_fin, nombre, descripcion, logros, dificultades, fuente_financiamiento, grupo_id, memoria_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      INSERT INTO investigaciones (tipo, codigo, fecha_inicio, fecha_fin, nombre, descripcion, logros, dificultades, fuente_financiamiento, memoria_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
 
@@ -34,7 +33,6 @@ export class InvestigacionModel {
       data.logros || null,
       data.dificultades || null,
       data.fuente_financiamiento || null,
-      data.grupo_id,
       data.memoria_id,
     ]);
 
@@ -104,10 +102,6 @@ export class InvestigacionModel {
     if (data.fuente_financiamiento !== undefined) {
       updates.push(`fuente_financiamiento = $${idx++}`);
       params.push(data.fuente_financiamiento);
-    }
-    if (data.grupo_id !== undefined) {
-      updates.push(`grupo_id = $${idx++}`);
-      params.push(data.grupo_id);
     }
     if (data.memoria_id !== undefined) {
       updates.push(`memoria_id = $${idx++}`);

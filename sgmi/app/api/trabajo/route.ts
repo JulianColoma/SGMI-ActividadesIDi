@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     
            if (!auth || auth.role !== "admin") {
             return NextResponse.json(
-            { success: false, error: "Sólo administradores pueden registrar usuarios." },
+            { success: false, error: "Sólo administradores pueden crear trabajos." },
             { status: 403 }
          );
       }

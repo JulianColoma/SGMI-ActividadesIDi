@@ -18,7 +18,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     
            if (!auth || auth.role !== "admin") {
             return NextResponse.json(
-            { success: false, error: "Sólo administradores pueden registrar usuarios." },
+            { success: false, error: "Sólo administradores pueden eliminar memorias." },
             { status: 403 }
          );
       }

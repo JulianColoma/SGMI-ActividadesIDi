@@ -185,10 +185,9 @@ function MemoriaDetallePage() {
     // Paso 1 -> Paso 2 (Guardar datos parciales y avanzar)
     const handleNextProyecto = (dataPaso1: any) => {
         // dataPaso1 trae { nombre, codigo, tipo, fecha_inicio, fecha_fin, descripcion } del ModalProyectoDatos
-        setProyectoDataTemp({ 
+            setProyectoDataTemp({ 
             ...proyectoDataTemp, 
             ...dataPaso1,
-            grupo_id: memoria?.grupo_id,
             memoria_id: Number(id)
         });
         setModalProyectoDatos(false);
@@ -201,7 +200,6 @@ function MemoriaDetallePage() {
             const payload = {
                 ...proyectoDataTemp,
                 ...dataPaso2,
-                grupo_id: memoria?.grupo_id,
                 memoria_id: Number(id),
             };
 

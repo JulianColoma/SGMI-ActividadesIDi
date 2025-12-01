@@ -38,7 +38,7 @@ export async function PUT(
 
        if (!auth || auth.role !== "admin") {
         return NextResponse.json(
-        { success: false, error: "Sólo administradores pueden registrar usuarios." },
+        { success: false, error: "Sólo administradores pueden modificar grupos." },
         { status: 403 }
      );
   }
@@ -79,7 +79,7 @@ export async function DELETE(
 
        if (!auth || auth.role !== "admin") {
         return NextResponse.json(
-        { success: false, error: "Sólo administradores pueden registrar usuarios." },
+        { success: false, error: "Sólo administradores pueden eliminar grupos." },
         { status: 403 }
      );
   }
