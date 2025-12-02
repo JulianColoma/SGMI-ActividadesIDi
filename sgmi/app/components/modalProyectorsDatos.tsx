@@ -24,22 +24,28 @@ export default function ModalProyectoDatos({
   const [descripcion, setDescripcion] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
 
-  // When initialData (for edit) is provided, populate local state
-  // Also reset when modal opens/closes
+  
   useEffect(() => {
-    if (open && initialData) {
-      setTipo(initialData.tipo ?? "");
-      setCodigo(initialData.codigo ?? "");
-      setNombre(initialData.nombre ?? "");
-      // assume fecha come as ISO date string
-      setFechaInicio(initialData.fecha_inicio ? new Date(initialData.fecha_inicio).toISOString().slice(0, 10) : "");
-      setFechaFin(initialData.fecha_fin ? new Date(initialData.fecha_fin).toISOString().slice(0, 10) : "");
-      setDescripcion(initialData.descripcion ?? "");
+    if (open) {
+      if (initialData) {
+        // --- MODO EDICIÓN: Cargar datos ---
+        setTipo(initialData.tipo ?? "");
+        setCodigo(initialData.codigo ?? "");
+        setNombre(initialData.nombre ?? "");
+        setFechaInicio(initialData.fecha_inicio ? new Date(initialData.fecha_inicio).toISOString().slice(0, 10) : "");
+        setFechaFin(initialData.fecha_fin ? new Date(initialData.fecha_fin).toISOString().slice(0, 10) : "");
+        setDescripcion(initialData.descripcion ?? "");
+      } else {
+        // --- MODO NUEVO: Limpiar campos ---
+        setTipo(""); 
+        setCodigo(""); 
+        setNombre(""); 
+        setFechaInicio(""); 
+        setFechaFin(""); 
+        setDescripcion("");
+      }
     }
-    if (!open) {
-      // clear when closed
-      setTipo(""); setCodigo(""); setNombre(""); setFechaInicio(""); setFechaFin(""); setDescripcion("");
-    }
+    
   }, [open, initialData]);
 
   return (
@@ -87,10 +93,21 @@ export default function ModalProyectoDatos({
             <input
               type="text"
               placeholder="001"
-              className="input-base mt-1"
+              className={`input-base mt-1 ${
+                fieldErrors.codigo
+                  ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
+                  : ''
+              }`}
               value={codigo}
               onChange={(e) => setCodigo(e.target.value)}
+           onBlur={() => {
+                const errs = { ...fieldErrors };
+                if (!codigo || !codigo.trim()) errs.codigo = 'El codigo es obligatorio';
+                else delete errs.codigo;
+                setFieldErrors(errs);
+              }}
             />
+            {fieldErrors.tipo && <Hint show={true} message={fieldErrors.codigo} type="error" />}
           </div>
 
           {/* Nombre */}
@@ -180,6 +197,7 @@ export default function ModalProyectoDatos({
             onClick={() => {
               const errs: Record<string,string> = {};
               if (!tipo || !tipo.trim()) errs.tipo = 'El tipo es obligatorio';
+              if (!codigo || !codigo.trim()) errs.codigo = 'El codigo es obligatorio';
               if (!nombre || !nombre.trim()) errs.nombre = 'El nombre del proyecto es obligatorio';
               if (!fecha_inicio) errs.fecha_inicio = 'La fecha de inicio es obligatoria';
               if (!fecha_fin) errs.fecha_fin = 'La fecha de fin es obligatoria';

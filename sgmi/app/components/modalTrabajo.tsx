@@ -24,6 +24,7 @@ export default function ModalTrabajo({
   modoInicial,
   initialData,
   editId,
+  lockMemoria = false, 
 }: {
   open: boolean;
   onClose: () => void;
@@ -31,17 +32,17 @@ export default function ModalTrabajo({
   modoInicial: "nacional" | "internacional";
   initialData?: any;
   editId?: number | null;
+  lockMemoria?: boolean; 
 }) {
-  // Lógica robusta para determinar el tipo inicial
+  
   const resolvedTipo = (() => {
     if (initialData) {
-      // 1. Prioridad: Usar el tipo explícito que viene de la BD
+     
       if (initialData.reunion_tipo) {
         return initialData.reunion_tipo.toLowerCase() === "internacional"
           ? "internacional"
           : "nacional";
-      }
-      // 2. Fallback: Si tiene país y NO es Argentina, asumimos internacional
+      }// 2. Fallback: Si tiene país y NO es Argentina, asumimos internacional
       if (initialData.pais && initialData.pais.toLowerCase() !== "argentina") {
         return "internacional";
       }
@@ -52,7 +53,7 @@ export default function ModalTrabajo({
 
   const [tipo, setTipo] = useState<"nacional" | "internacional">(resolvedTipo);
 
-  // --- NUEVO: Estados para los selectores de Grupo y Memoria ---
+
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [selectedGrupoId, setSelectedGrupoId] = useState<number | string>("");
   const [selectedMemoriaId, setSelectedMemoriaId] = useState<number | string>(
@@ -88,7 +89,7 @@ export default function ModalTrabajo({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // 1. Cargar la lista de grupos y memorias al abrir
+  // Cargar la lista de grupos y memorias al abrir
   useEffect(() => {
     const fetchGrupos = async () => {
       try {
@@ -108,7 +109,7 @@ export default function ModalTrabajo({
     }
   }, [open]);
 
-  // 2. Manejar la precarga de datos (Modo Edición) para los Dropdowns
+  //  Manejar la precarga de datos (Modo Edición) para los Dropdowns
   useEffect(() => {
     if (open && initialData && grupos.length > 0) {
       // Lógica para preseleccionar los dropdowns si ya hay una memoria asignada
@@ -150,7 +151,6 @@ export default function ModalTrabajo({
 
       if (Object.keys(errs).length) {
         setFieldErrors(errs);
-        // don't proceed
         return;
       }
 
@@ -164,7 +164,7 @@ export default function ModalTrabajo({
         expositor_id: null,
         reunion_id: null,
 
-        // --- NUEVO: Enviamos la memoria seleccionada ---
+      
         memoria_id: selectedMemoriaId ? Number(selectedMemoriaId) : null,
 
         // datos extra
@@ -270,7 +270,10 @@ export default function ModalTrabajo({
               Seleccionar Grupo
             </label>
             <select
-              className="input-base mt-1 w-full p-2 border border-gray-300 rounded-md"
+              disabled={lockMemoria} // Bloqueamos si viene lockMemoria
+              className={`input-base mt-1 w-full p-2 border border-gray-300 rounded-md ${
+                lockMemoria ? 'bg-gray-200 text-gray-600 cursor-not-allowed' : ''
+              }`}
               value={selectedGrupoId}
               onChange={(e) => {
                 setSelectedGrupoId(Number(e.target.value));
@@ -297,10 +300,10 @@ export default function ModalTrabajo({
                 fieldErrors.memoria_id
                   ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
                   : 'border border-gray-300'
-              }`}
+              } ${lockMemoria ? 'cursor-not-allowed' : ''}`}
               value={selectedMemoriaId}
               onChange={(e) => setSelectedMemoriaId(Number(e.target.value))}
-              disabled={!selectedGrupoId}
+              disabled={!selectedGrupoId || lockMemoria} // Bloqueamos si no hay grupo O si está lockMemoria
             >
               <option value="">
                 {selectedGrupoId
@@ -318,7 +321,7 @@ export default function ModalTrabajo({
             </select>
             {fieldErrors.memoria_id && <Hint show={true} message={fieldErrors.memoria_id} type="error" />}
           </div>
-          {/* NOMBRE REUNI\u00d3N */}
+          {/* NOMBRE REUNION */}
           <div>
             <label className="font-semibold text-black">
               Nombre de la Reunion

@@ -12,35 +12,40 @@ import ErrorModal from "../components/alerts/ErrorModal";
 import ConfirmModal from "../components/alerts/ConfrimModal";
 import { Toast, ModalSwal } from '@/app/lib/swal';
 
+// Definimos el estado inicial fuera o como constante para reutilizarlo
+const INITIAL_FORM_STATE = {
+  tipo: "",
+  codigo: "",
+  nombre: "",
+  fecha_inicio: "",
+  fecha_fin: "",
+  descripcion: "",
+  logros: "",
+  fuente_financiamiento: "",
+  dificultades: "",
+  memoria_id: 1, 
+};
 
 function ProyectosPage() {
   const [modalDatos, setModalDatos] = useState(false);
   const [modalDetalles, setModalDetalles] = useState(false);
 
-  const [formData, setFormData] = useState({
-    tipo: "",
-    codigo: "",
-    nombre: "",
-    fecha_inicio: "",
-    fecha_fin: "",
-    descripcion: "",
-    logros: "",
-    fuente_financiamiento: "",
-    dificultades: "",
-    memoria_id: 1,
-  });
+  // Usamos la constante para el estado inicial
+  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
+
   // Modal de error
   const [showError, setShowError] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
   const [errorDesc, setErrorDesc] = useState("");
 
-  // Modal confirmar eliminación (reemplaza ModalEliminar)
+  // Modal confirmar eliminación
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [modalVer, setModalVer] = useState(false);
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState<any | null>(null);
+  
+  // editId controla si es POST o PUT
   const [editId, setEditId] = useState<number | null>(null);
-
 
   type Proyecto = {
     id: number;
@@ -64,13 +69,11 @@ function ProyectosPage() {
     setLoading(true);
     setError(null);
     try {
-    
       const res = await fetch("/api/investigacion", {
         credentials: "include",
       });
 
       if (!res.ok) {
-        
         let body: any = null;
         try { body = await res.json(); } catch { console.log('No JSON body'); }
         throw new Error(body?.error || `Error HTTP ${res.status}`);
@@ -94,15 +97,20 @@ function ProyectosPage() {
     loadProyectos();
   }, []);
 
+ 
+  function handleNewProyecto() {
+    setEditId(null); 
+    setFormData(INITIAL_FORM_STATE); 
+    setModalDatos(true); 
+  }
+
   async function handleSave(dataFinal: Record<string, any>) {
     try {
-
-      // Quick client-side validation for required fields
       if (!dataFinal.tipo || !dataFinal.nombre || !dataFinal.fecha_inicio) {
         await Toast.fire({ icon: 'warning', title: 'Completa los campos obligatorios', text: 'Tipo, nombre y fecha de inicio son requeridos.', timer: 1600 });
         return;
       }
-      // Si hay editId, hacemos PUT a /api/investigacion/:id en lugar de POST
+      
       const isEditing = !!editId;
 
       const res = await fetch(isEditing ? `/api/investigacion/${editId}` : '/api/investigacion', {
@@ -125,13 +133,14 @@ function ProyectosPage() {
       await Toast.fire({ icon: 'success', title: isEditing ? 'Proyecto actualizado con éxito' : 'Proyecto guardado con éxito' });
       setModalDetalles(false);
       setEditId(null);
-      loadProyectos(); // recarga la tabla
+   
+      setFormData(INITIAL_FORM_STATE); 
+      loadProyectos(); 
     } catch (e) {
       await ModalSwal.fire({ icon: 'error', title: 'Error al conectar', text: 'No se pudo conectar con el servidor.' });
     }
   }
 
-  // Eliminar investigacion (llamada al backend)
   async function handleDeleteConfirm() {
     if (!proyectoSeleccionado) return;
     try {
@@ -141,7 +150,6 @@ function ProyectosPage() {
       if (!res.ok || !json.success) {
         alert(json.error || json.message || `No se pudo eliminar (code ${res.status})`);
       } else {
-        // refrescar lista
         await loadProyectos();
       }
     } catch (e: any) {
@@ -150,13 +158,9 @@ function ProyectosPage() {
       setShowConfirmDelete(false);
       setProyectoSeleccionado(null);
     }
-
   }
 
-
-
   function handleEdit(proyecto: any) {
-    // set edit id and prefill formData with proyecto values & open first modal
     setEditId(proyecto?.id ?? null);
     setFormData({
       tipo: proyecto?.tipo ?? "",
@@ -170,7 +174,6 @@ function ProyectosPage() {
       dificultades: proyecto?.dificultades ?? "",
       memoria_id: proyecto?.memoria_id ?? 1,
     });
-    // Close view modal and open the first modal to edit
     setModalVer(false);
     setShowConfirmDelete(false)
     setModalDatos(true);
@@ -181,7 +184,6 @@ function ProyectosPage() {
       <Sidebar />
 
       <main className="flex-1 px-12 py-8 bg-white">
-        {/* Título + usuario */}
         <div className="flex items-center justify-between mb-10">
           <h1 className="text-3xl font-semibold text-gray-800 whitespace-nowrap">
             Gestión de Proyectos de I+D+i
@@ -189,11 +191,9 @@ function ProyectosPage() {
           <UserPill />
         </div>
 
-        {/* Buscar + botón agregar */}
         <div className="flex items-center justify-between mb-6">
           <div className="relative w-80">
             <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-
             <input
               type="text"
               placeholder="Buscar proyecto"
@@ -202,17 +202,16 @@ function ProyectosPage() {
             />
           </div>
 
+          
           <button
-            onClick={() => setModalDatos(true)}
+            onClick={handleNewProyecto} 
             className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] shadow-sm hover:bg-[#00b197]"
           >
             + Añadir Proyecto
           </button>
         </div>
 
-        {/* Tabla */}
         <div className="border border-gray-300 rounded-lg overflow-hidden w-full">
-          {/* Headers */}
           <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
             <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
             <div className="px-4 py-3 border-r border-gray-300">Código</div>
@@ -220,7 +219,6 @@ function ProyectosPage() {
             <div className="px-4 py-3">Acciones</div>
           </div>
 
-          {/* CARGANDO / ERROR / SIN DATOS */}
           {loading && (
             <div className="p-6 text-center text-sm text-gray-600">Cargando proyectos...</div>
           )}
@@ -233,7 +231,6 @@ function ProyectosPage() {
             <div className="p-6 text-center text-sm text-gray-600">No hay proyectos registrados.</div>
           )}
 
-          {/* Filas */}
           {proyectosFiltrados.map((p, i) => (
             <div
               key={p.id}
@@ -247,7 +244,6 @@ function ProyectosPage() {
               </div>
               <div className="px-4 py-4 border-r border-gray-300 text-gray-700">{p.tipo}</div>
 
-
               <div className="px-4 py-4 flex items-center gap-4">
                 <HiOutlineEye
                   title="Ver"
@@ -256,25 +252,21 @@ function ProyectosPage() {
                     setModalVer(true);
                   }}
                   className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
-                >
-
-                </HiOutlineEye>
-
+                />
                 <HiOutlineTrash
                   title="Eliminar"
                   onClick={() => {
                     setProyectoSeleccionado(p);
                     setShowConfirmDelete(true);
-
                   }}
                   className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
-                >
-
-                </HiOutlineTrash>
+                />
               </div>
             </div>
           ))}
         </div>
+        
+        {/* Paginación simple... */}
         <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
           <button className="px-2 py-1 hover:bg-gray-100 rounded">←</button>
           <span className="px-3 py-1 rounded bg-[#27333d] text-white">1</span>
@@ -282,7 +274,7 @@ function ProyectosPage() {
         </div>
       </main>
 
-      {/* Modal 1: Datos iniciales */}
+      {/* Modales... */}
       {modalDatos && (
         <ModalProyectoDatos
           open={modalDatos}
@@ -296,7 +288,6 @@ function ProyectosPage() {
         />
       )}
 
-      {/* Modal 2: Financiación / logros */}
       {modalDetalles && (
         <NewProyecto
           open={modalDetalles}
@@ -310,7 +301,6 @@ function ProyectosPage() {
         />
       )}
 
-      {/* Modal ver proyecto */}
       <ModalVerProyecto
         open={modalVer}
         proyecto={proyectoSeleccionado}
@@ -318,7 +308,6 @@ function ProyectosPage() {
         onEdit={(p: any) => handleEdit(p)}
       />
 
-      {/* Modal eliminar */}
       <ConfirmModal
         open={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}

@@ -15,7 +15,7 @@ import ModalProyectoDatos from "@/app/components/modalProyectorsDatos";
 import NewProyecto from "@/app/components/newproyecto";
 import ModalVerTrabajo from "@/app/components/modalVerTrabajo";
 import ModalVerProyecto from "@/app/components/modalVerProyecto";
-import Swal from 'sweetalert2';
+import Toast from 'sweetalert2';
 import UserPill from "@/app/components/userPill";
 import { withAuth } from "@/app/withAuth";
 import ConfirmModal from "@/app/components/alerts/ConfrimModal";
@@ -140,13 +140,13 @@ function MemoriaDetallePage() {
         }
     };
 
-    // --- MANEJADORES DE PROYECTOS (Wizard de 2 pasos) ---
+    // --- MANEJADORES DE PROYECTOS---
 
     // Abrir modal para crear proyecto
     const handleOpenCreateProyecto = () => {
         setEditProyectoData(null);
         setProyectoDataTemp({});
-        setModalProyectoDatos(true); // Paso 1
+        setModalProyectoDatos(true);
     };
 
     // Abrir modal para editar proyecto
@@ -155,7 +155,7 @@ function MemoriaDetallePage() {
         setEditProyectoData(proyecto);
         // Pre-llenamos los datos temporales con lo que ya tiene el proyecto
         setProyectoDataTemp(proyecto);
-        setModalProyectoDatos(true); // Paso 1 (Edición)
+        setModalProyectoDatos(true); 
     };
 
     // Eliminar proyecto
@@ -468,12 +468,12 @@ function MemoriaDetallePage() {
             </main>
 
             {/* --- MODALES CREACIÓN / EDICIÓN --- */}
-            {/* Usamos renderizado condicional ({open && <Modal/>}) para que se monten y desmonten limpiamente, 
-                evitando el error "Expected static flag" y reseteando los estados internos */}
+           
 
             {openTrabajo && (
                 <ModalTrabajo
                     open={openTrabajo}
+                    lockMemoria={true}
                     modoInicial={modoGlobal ? "internacional" : "nacional"}
                     initialData={editTrabajoData || { memoria_id: Number(id) }}
                     editId={editTrabajoData?.id}
@@ -488,7 +488,6 @@ function MemoriaDetallePage() {
                     open={modalProyectoDatos}
                     initialData={editProyectoData || {}} // Si hay edición, precarga datos
                     onClose={() => setModalProyectoDatos(false)}
-                    // Asumo que tu ModalProyectoDatos soporta pasarle una función con los datos recolectados
                     onNext={(dataPaso1: any) => handleNextProyecto(dataPaso1)}
                 />
             )}
@@ -504,6 +503,7 @@ function MemoriaDetallePage() {
                         setModalProyectoDatos(true);
                     }}
                     onSave={handleFinalSaveProyecto}
+                    lockMemoria={true} 
                 />
             )}
 

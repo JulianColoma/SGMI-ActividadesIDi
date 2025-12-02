@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Hint from "./alerts/Hint";
 
-// Definimos las interfaces basándonos en tu JSON
+// Definimos las interfaces 
 interface Memoria {
   id: number;
   anio: number;
@@ -22,12 +22,14 @@ export default function NewProyecto({
   onBack,
   onSave,
   initialData,
+  lockMemoria = false, 
 }: {
   open: boolean;
   onClose: () => void;
   onBack: () => void;
   onSave: (data: any) => void;
   initialData?: any;
+  lockMemoria?: boolean; 
 }) {
   if (!open) return null;
 
@@ -42,11 +44,9 @@ export default function NewProyecto({
   const [selectedMemoriaId, setSelectedMemoriaId] = useState<number | string>("");
   const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
 
-
   useEffect(() => {
     const fetchGrupos = async () => {
       try {
-        
         const res = await fetch("/api/grupo"); 
         const data = await res.json();
         
@@ -62,37 +62,37 @@ export default function NewProyecto({
       fetchGrupos();
     }
   }, [open]);
-
  
   useEffect(() => {
-    if (open && initialData) {
-      setFinanciamiento(initialData.fuente_financiamiento ?? "");
-      setLogros(initialData.logros ?? "");
-      setDificultades(initialData.dificultades ?? "");
-      
-      // Si initialData trae memoria_id, determinamos su grupo padre
-     
-      if (initialData.memoria_id && grupos.length > 0) {
-        // Buscamos a qué grupo pertenece esta memoria_id (para edición)
-        const grupoPadre = grupos.find(g => 
-          g.memorias.some(m => m.id === initialData.memoria_id)
-        );
+    if (open) {
+      if (initialData) {
+        // --- MODO EDICIÓN O PRE-CARGA ---
+        setFinanciamiento(initialData.fuente_financiamiento ?? "");
+        setLogros(initialData.logros ?? "");
+        setDificultades(initialData.dificultades ?? "");
 
-        if (grupoPadre) {
-          setSelectedGrupoId(grupoPadre.id);
-          setSelectedMemoriaId(initialData.memoria_id);
+        // Si viene un memoria_id (ya sea por edición o por bloqueo desde el padre)
+        if (initialData.memoria_id && grupos.length > 0) {
+          const grupoPadre = grupos.find(g => 
+            g.memorias.some(m => m.id === initialData.memoria_id)
+          );
+          
+          if (grupoPadre) {
+            setSelectedGrupoId(grupoPadre.id);
+            setSelectedMemoriaId(initialData.memoria_id);
+          }
         }
+      } else {
+        // --- MODO NUEVO LIMPIO ---
+        setFinanciamiento("");
+        setLogros("");
+        setDificultades("");
+        setSelectedGrupoId("");
+        setSelectedMemoriaId("");
+        setFieldErrors({}); 
       }
-    } 
-    // Resetear formulario al cerrar
-    if (!open) {
-      setFinanciamiento("");
-      setLogros("");
-      setDificultades("");
-      setSelectedGrupoId("");
-      setSelectedMemoriaId("");
     }
-  }, [open, initialData, grupos]); 
+  }, [open, initialData, grupos]);
 
   // Filtrar las memorias disponibles según el grupo seleccionado
   const memoriasDelGrupo = grupos.find(g => g.id === Number(selectedGrupoId))?.memorias || [];
@@ -118,16 +118,17 @@ export default function NewProyecto({
           <div>
             <label className="font-semibold text-black">Seleccionar Grupo</label>
             <select
+              // Si lockMemoria es true, deshabilitamos el select
+              disabled={lockMemoria} 
               className={`input-base mt-1 w-full p-2 rounded-md ${
                 fieldErrors.selectedGrupoId
                   ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
                   : 'border border-gray-300'
-              }`}
+              } ${lockMemoria ? 'bg-gray-200 text-gray-600 cursor-not-allowed' : ''}`} // Estilo visual bloqueado
               value={selectedGrupoId}
               onChange={(e) => {
                 setSelectedGrupoId(Number(e.target.value));
-                setSelectedMemoriaId(""); // Resetear memoria al cambiar de grupo
-                // Limpiar error al seleccionar
+                setSelectedMemoriaId(""); 
                 const errs = { ...fieldErrors };
                 if (e.target.value) delete errs.selectedGrupoId;
                 setFieldErrors(errs);
@@ -147,14 +148,15 @@ export default function NewProyecto({
           <div>
             <label className="font-semibold text-black">Seleccionar Memoria</label>
             <select
+              // Si lockMemoria es true O no hay grupo, deshabilitamos
+              disabled={!selectedGrupoId || lockMemoria} 
               className={`input-base mt-1 w-full p-2 rounded-md disabled:bg-gray-200 disabled:text-gray-500 ${
                 fieldErrors.memoria_id
                   ? 'border-2 border-red-500 focus:outline-none focus:ring-red-500'
                   : 'border border-gray-300'
-              }`}
+              } ${lockMemoria ? 'cursor-not-allowed' : ''}`}
               value={selectedMemoriaId}
               onChange={(e) => setSelectedMemoriaId(Number(e.target.value))}
-              disabled={!selectedGrupoId} // Se bloquea si no hay grupo seleccionado
             >
               <option value="">
                 {selectedGrupoId ? "-- Elija una memoria --" : "-- Primero seleccione un grupo --"}
