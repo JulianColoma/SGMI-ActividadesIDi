@@ -17,8 +17,8 @@ export default function ConfirmModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
-      <div className="bg-white w-[360px] rounded-xl p-5 shadow-[0_4px_18px_rgba(0,0,0,0.12)] relative">
+    <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-4">
+      <div className="bg-white w-full max-w-[360px] rounded-xl p-5 shadow-[0_4px_18px_rgba(0,0,0,0.12)] relative">
 
         {/* Close button minimal */}
         <button
@@ -30,9 +30,9 @@ export default function ConfirmModal({
 
         {/* Icon + message */}
         <div className="flex flex-col items-center text-center mt-2">
-          <HiExclamationTriangle className="text-yellow-500" size={40} />
+          <HiExclamationTriangle className="text-yellow-500 flex-shrink-0" size={40} />
 
-          <p className="text-[15px] font-medium text-gray-800 mt-3 leading-snug">
+          <p className="text-[15px] font-medium text-gray-800 mt-3 leading-snug break-words">
             {message}
           </p>
         </div>
@@ -41,14 +41,14 @@ export default function ConfirmModal({
         <div className="flex justify-center gap-4 mt-5">
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-md bg-gray-100 text-gray-800 text-sm font-semibold hover:bg-gray-200 transition"
+            className="flex-1 px-5 py-2 rounded-md bg-gray-100 text-gray-800 text-sm font-semibold hover:bg-gray-200 transition"
           >
             No
           </button>
 
           <button
             onClick={onConfirm}
-            className="px-5 py-2 rounded-md bg-gray-100 text-gray-800 text-sm font-semibold hover:bg-gray-200 transition"
+            className="flex-1 px-5 py-2 rounded-md bg-gray-100 text-gray-800 text-sm font-semibold hover:bg-gray-200 transition"
           >
             Sí
           </button>

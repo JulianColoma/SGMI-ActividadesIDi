@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -50,7 +49,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* BARRA SUPERIOR + BOTÓN REGISTRARSE (como en Figma) */}
-      <header className="w-full bg-[#e5e7eb] h-20 flex items-center justify-end px-10">
+      {/* Responsive: h-16 mobile / h-20 desktop. Padding px-4 mobile / px-10 desktop */}
+      <header className="w-full bg-[#e5e7eb] h-16 md:h-20 flex items-center justify-end px-4 md:px-10">
         {/*<button
           type="button"
           onClick={() => router.push("/register")} // cambia la ruta si usás otra
@@ -61,9 +61,9 @@ export default function LoginPage() {
       </header>
 
       {/* CONTENIDO CENTRAL */}
-      <main className="flex-1 flex flex-col items-center mt-10 px-4">
+      <main className="flex-1 flex flex-col items-center mt-6 md:mt-10 px-4">
         {/* LOGO CENTRADO */}
-        <div className="mb-10">
+        <div className="mb-6 md:mb-10">
           <Image
             src="/images/logo.svg" 
             alt="Logo SGMI"
@@ -72,10 +72,11 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* CARD DEL FORMULARIO (como la primera captura) */}
+        {/* CARD DEL FORMULARIO */}
+        {/* Responsive: px-6 en mobile para que no se apriete tanto el contenido */}
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-md bg-white shadow-[0_0_25px_rgba(15,23,42,0.08)] rounded-2xl px-10 py-8 space-y-5 border border-[#f3f4f6]"
+          className="w-full max-w-md bg-white shadow-[0_0_25px_rgba(15,23,42,0.08)] rounded-2xl px-6 py-6 md:px-10 md:py-8 space-y-5 border border-[#f3f4f6]"
         >
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-700">Email</label>

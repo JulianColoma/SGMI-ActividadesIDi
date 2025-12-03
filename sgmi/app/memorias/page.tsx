@@ -209,15 +209,22 @@ function MemoriasPage() {
     <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
       <Sidebar />
 
-      <main className="flex-1 px-12 py-8 bg-white">
-        <div className="flex align-center justify-between">
-          <h1 className="text-3xl font-semibold text-gray-800 mb-8">
+      {/* Responsive: px-4 en mobile / px-12 en desktop */}
+      <main className="flex-1 px-4 py-6 md:px-12 md:py-8 bg-white overflow-y-auto h-screen">
+        
+        {/* Header: Flex-col en mobile para apilar título y UserPill. Agregado mt-12 en mobile para la hamburguesa */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4 mt-12 md:mt-0">
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">
             Gestión de memorias
           </h1>
-          <UserPill />
+          <div className="self-end md:self-auto">
+             <UserPill />
+          </div>
         </div>
-        <div className="flex items-center justify-between mb-6">
-          <div className="relative w-80">
+
+        {/* Barra de búsqueda y botón: Flex-col en mobile */}
+        <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+          <div className="relative w-full md:w-80">
             <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
 
             <input
@@ -230,47 +237,49 @@ function MemoriasPage() {
 
           <button
             onClick={() => setIsModalGrupoOpen(true)}
-            className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] shadow-sm hover:bg-[#00b197]"
+            className="w-full md:w-auto px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] shadow-sm hover:bg-[#00b197]"
           >
             + Añadir Grupo
           </button>
         </div>
 
-        {loading && <p className="text-gray-500">Cargando memorias...</p>}
+        {loading && <p className="text-gray-500 text-center py-4">Cargando memorias...</p>}
 
         {!loading &&
           gruposFiltrados.map((grupo) => (
-            <div key={grupo.id} className="mb-10">
+            <div key={grupo.id} className="mb-6 md:mb-10">
+              {/* Encabezado del Grupo */}
               <div className="bg-[#d3d3d3] px-4 py-3 rounded-t-lg font-semibold flex justify-between items-center">
-                <span>{grupo.nombre}</span>
+                <span className="text-sm md:text-base break-words">{grupo.nombre}</span>
                 <span>
                   <HiOutlineTrash
-                    className="w-6 h-6 text-grey-500 cursor-pointer hover:scale-110 transition-transform"
+                    className="w-5 h-5 md:w-6 md:h-6 text-grey-500 cursor-pointer hover:scale-110 transition-transform ml-2"
                     title="Eliminar grupo"
                     onClick={() => handleDeleteGrupo(grupo.id)}
                   />
                 </span>
               </div>
 
+              {/* Lista de Memorias */}
               {grupo.memorias && grupo.memorias.length > 0 ? (
                 grupo.memorias.map((mem) => (
                   <div
                     key={mem.id}
                     className="bg-white px-4 py-3 border-b flex justify-between items-center hover:bg-gray-50 transition-colors"
                   >
-                    <span className="text-gray-700">
+                    <span className="text-gray-700 text-sm md:text-base">
                       Memoria Anual {mem.anio}
                     </span>
 
                     <div className="flex gap-4">
                       <HiOutlineEye
-                        className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
+                        className="w-5 h-5 md:w-6 md:h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
                         onClick={() => router.push(`/memorias/${mem.id}`)}
                         title="Ver detalles"
                       />
 
                       <HiOutlineTrash
-                        className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
+                        className="w-5 h-5 md:w-6 md:h-6 text-red-500 cursor-pointer hover:text-red-700"
                         title="Eliminar memoria"
                         onClick={() => handleDeleteMemoria(mem.id)}
                       />
@@ -278,14 +287,15 @@ function MemoriasPage() {
                   </div>
                 ))
               ) : (
-                <div className="bg-white px-4 py-3 border-b text-gray-400 italic">
+                <div className="bg-white px-4 py-3 border-b text-gray-400 italic text-sm md:text-base">
                   No hay memorias cargadas para este grupo.
                 </div>
               )}
 
+              {/* Footer del Grupo */}
               <div className="bg-[#ededed] px-4 py-3 rounded-b-lg">
                 <button
-                  className="bg-[#00c9a7] text-white px-3 py-1 rounded-md text-sm hover:bg-[#00b092] transition-colors"
+                  className="bg-[#00c9a7] text-white px-3 py-1 rounded-md text-sm hover:bg-[#00b092] transition-colors w-full md:w-auto"
                   onClick={() => handleOpenModalMemoria(grupo.id)}
                 >
                   + Agregar Memoria

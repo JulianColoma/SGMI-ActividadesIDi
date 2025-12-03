@@ -276,27 +276,29 @@ function MemoriaDetallePage() {
         <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
             <Sidebar />
 
-            <main className="flex-1 px-12 py-8 bg-white overflow-y-auto h-screen">
+            <main className="flex-1 px-4 py-6 md:px-12 md:py-8 bg-white overflow-y-auto h-screen w-full">
 
-                {/* HEADER */}
-                <div className="flex items-center justify-between mb-6">
+                {/* HEADER: Added mt-12 in mobile for hamburger fix */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 mt-12 md:mt-0">
                     <div>
-                        <h1 className="text-3xl font-semibold text-gray-800">
+                        <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">
                             Memoria Anual {memoria?.anio}
                         </h1>
-                        <p className="text-gray-500 mt-1">
+                        <p className="text-gray-500 mt-1 text-sm md:text-base">
                             {memoria?.contenido || "Sin descripción disponible."}
                         </p>
                     </div>
 
-                    <UserPill />
+                    <div className="self-end md:self-auto">
+                        <UserPill />
+                    </div>
                 </div>
 
                 {/* TABS */}
-                <div className="flex gap-8 border-b border-gray-300 mb-8">
+                <div className="flex gap-4 md:gap-8 border-b border-gray-300 mb-8 overflow-x-auto">
                     <button
                         onClick={() => setTab("trabajos")}
-                        className={`pb-3 text-sm font-semibold transition ${tab === "trabajos"
+                        className={`pb-3 text-sm font-semibold transition whitespace-nowrap ${tab === "trabajos"
                             ? "text-[#00c9a7] border-b-2 border-[#00c9a7]"
                             : "text-gray-500 hover:text-gray-700"
                             }`}
@@ -306,7 +308,7 @@ function MemoriaDetallePage() {
 
                     <button
                         onClick={() => setTab("proyectos")}
-                        className={`pb-3 text-sm font-semibold transition ${tab === "proyectos"
+                        className={`pb-3 text-sm font-semibold transition whitespace-nowrap ${tab === "proyectos"
                             ? "text-[#00c9a7] border-b-2 border-[#00c9a7]"
                             : "text-gray-500 hover:text-gray-700"
                             }`}
@@ -318,8 +320,9 @@ function MemoriaDetallePage() {
                 {/* SECCIÓN TRABAJOS */}
                 {tab === "trabajos" && (
                     <>
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="relative w-80">
+                        {/* FILTROS */}
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                            <div className="relative w-full md:w-80">
                                 <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                                 <input
                                     type="text"
@@ -330,10 +333,10 @@ function MemoriaDetallePage() {
                                 />
                             </div>
 
-                            <div className="flex items-center gap-4">
-                                {/* TOGGLE BANDERA */}
+                            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+                                {/* TOGGLE BANDERA FIXED: Added flex-shrink-0 to prevent squashing */}
                                 <div
-                                    className={`w-20 h-9 flex items-center rounded-full p-1 cursor-pointer transition-all ${modoGlobal ? "bg-[#00c9a7]" : "bg-gray-300"}`}
+                                    className={`w-20 h-9 flex items-center rounded-full p-1 cursor-pointer transition-all flex-shrink-0 ${modoGlobal ? "bg-[#00c9a7]" : "bg-gray-300"}`}
                                     onClick={() => setModoGlobal(!modoGlobal)}
                                 >
                                     <div
@@ -349,7 +352,7 @@ function MemoriaDetallePage() {
 
                                 <button
                                     onClick={handleOpenCreateTrabajo}
-                                    className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] hover:bg-[#00b197]"
+                                    className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] hover:bg-[#00b197] whitespace-nowrap"
                                 >
                                     + Añadir Trabajo
                                 </button>
@@ -357,50 +360,52 @@ function MemoriaDetallePage() {
                         </div>
 
                         {/* TABLA TRABAJOS */}
-                        <div className="border border-gray-300 rounded-lg overflow-hidden">
-                            <div className="grid grid-cols-5 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
-                                <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
-                                <div className="px-4 py-3 border-r border-gray-300">
-                                    {modoGlobal ? "País" : "Ciudad"}
-                                </div>
-                                <div className="px-4 py-3 border-r border-gray-300">Fecha</div>
-                                <div className="px-4 py-3 border-r border-gray-300">Reunión</div>
-                                <div className="px-4 py-3 text-center">Acciones</div>
-                            </div>
-
-                            {trabajosFiltrados.length > 0 ? (
-                                trabajosFiltrados.map((t, i) => (
-                                    <div
-                                        key={t.id || i}
-                                        className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
-                                    >
-                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">{t.titulo}</div>
-                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">
-                                            {modoGlobal ? t.pais : t.ciudad}
-                                        </div>
-                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">
-                                            {formatDate(t.fecha_presentacion)}
-                                        </div>
-                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">
-                                            {t.reunion}
-                                        </div>
-                                        <div className="px-4 py-4 flex justify-center gap-5">
-                                            <HiOutlineEye
-                                                className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
-                                                onClick={() => setVerTrabajo(t)}
-                                                title="Ver detalle"
-                                            />
-                                            <HiOutlineTrash
-                                                className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
-                                                onClick={() => handleDeleteTrabajo(t.id)}
-                                                title="Eliminar trabajo"
-                                            />
-                                        </div>
+                        <div className="border border-gray-300 rounded-lg overflow-hidden overflow-x-auto">
+                            <div className="min-w-[900px]">
+                                <div className="grid grid-cols-5 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
+                                    <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
+                                    <div className="px-4 py-3 border-r border-gray-300">
+                                        {modoGlobal ? "País" : "Ciudad"}
                                     </div>
-                                ))
-                            ) : (
-                                <div className="p-6 text-center text-gray-500">No se encontraron trabajos.</div>
-                            )}
+                                    <div className="px-4 py-3 border-r border-gray-300">Fecha</div>
+                                    <div className="px-4 py-3 border-r border-gray-300">Reunión</div>
+                                    <div className="px-4 py-3 text-center">Acciones</div>
+                                </div>
+
+                                {trabajosFiltrados.length > 0 ? (
+                                    trabajosFiltrados.map((t, i) => (
+                                        <div
+                                            key={t.id || i}
+                                            className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
+                                        >
+                                            <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">{t.titulo}</div>
+                                            <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">
+                                                {modoGlobal ? t.pais : t.ciudad}
+                                            </div>
+                                            <div className="px-4 py-4 border-r border-gray-300 text-sm">
+                                                {formatDate(t.fecha_presentacion)}
+                                            </div>
+                                            <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">
+                                                {t.reunion}
+                                            </div>
+                                            <div className="px-4 py-4 flex justify-center gap-5">
+                                                <HiOutlineEye
+                                                    className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
+                                                    onClick={() => setVerTrabajo(t)}
+                                                    title="Ver detalle"
+                                                />
+                                                <HiOutlineTrash
+                                                    className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
+                                                    onClick={() => handleDeleteTrabajo(t.id)}
+                                                    title="Eliminar trabajo"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-6 text-center text-gray-500">No se encontraron trabajos.</div>
+                                )}
+                            </div>
                         </div>
                     </>
                 )}
@@ -408,8 +413,8 @@ function MemoriaDetallePage() {
                 {/* SECCIÓN PROYECTOS */}
                 {tab === "proyectos" && (
                     <>
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="relative w-80">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                            <div className="relative w-full md:w-80">
                                 <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                                 <input
                                     type="text"
@@ -421,46 +426,48 @@ function MemoriaDetallePage() {
                             </div>
                             <button
                                 onClick={handleOpenCreateProyecto}
-                                className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] hover:bg-[#00b197]"
+                                className="w-full md:w-auto px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] hover:bg-[#00b197]"
                             >
                                 + Añadir Proyecto
                             </button>
                         </div>
 
                         {/* TABLA PROYECTOS */}
-                        <div className="border border-gray-300 rounded-lg overflow-hidden">
-                            <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
-                                <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
-                                <div className="px-4 py-3 border-r border-gray-300">Código</div>
-                                <div className="px-4 py-3 border-r border-gray-300">Tipo de Proyecto</div>
-                                <div className="px-4 py-3 text-center">Acciones</div>
-                            </div>
-                            {proyectosFiltrados.length > 0 ? (
-                                proyectosFiltrados.map((p, i) => (
-                                    <div
-                                        key={p.id || i}
-                                        className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
-                                    >
-                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">{p.nombre}</div>
-                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">{p.codigo}</div>
-                                        <div className="px-4 py-4 border-r border-gray-300 text-sm">{p.tipo}</div>
-                                        <div className="px-4 py-4 flex justify-center gap-5">
-                                            <HiOutlineEye
-                                                className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
-                                                onClick={() => setVerProyecto(p)}
-                                                title="Ver detalle"
-                                            />
-                                            <HiOutlineTrash
-                                                className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
-                                                onClick={() => handleDeleteProyecto(p.id)}
-                                                title="Eliminar proyecto"
-                                            />
+                        <div className="border border-gray-300 rounded-lg overflow-hidden overflow-x-auto">
+                            <div className="min-w-[700px]">
+                                <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
+                                    <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
+                                    <div className="px-4 py-3 border-r border-gray-300">Código</div>
+                                    <div className="px-4 py-3 border-r border-gray-300">Tipo de Proyecto</div>
+                                    <div className="px-4 py-3 text-center">Acciones</div>
+                                </div>
+                                {proyectosFiltrados.length > 0 ? (
+                                    proyectosFiltrados.map((p, i) => (
+                                        <div
+                                            key={p.id || i}
+                                            className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
+                                        >
+                                            <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">{p.nombre}</div>
+                                            <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">{p.codigo}</div>
+                                            <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">{p.tipo}</div>
+                                            <div className="px-4 py-4 flex justify-center gap-5">
+                                                <HiOutlineEye
+                                                    className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
+                                                    onClick={() => setVerProyecto(p)}
+                                                    title="Ver detalle"
+                                                />
+                                                <HiOutlineTrash
+                                                    className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
+                                                    onClick={() => handleDeleteProyecto(p.id)}
+                                                    title="Eliminar proyecto"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="p-6 text-center text-gray-500">No se encontraron proyectos.</div>
-                            )}
+                                    ))
+                                ) : (
+                                    <div className="p-6 text-center text-gray-500">No se encontraron proyectos.</div>
+                                )}
+                            </div>
                         </div>
                     </>
                 )}

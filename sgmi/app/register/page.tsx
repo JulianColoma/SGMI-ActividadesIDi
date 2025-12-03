@@ -1,62 +1,43 @@
-
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Hint from "../components/alerts/Hint";
+import { useAuth } from "../AuthContext"; // Importar useAuth
 
-export default function RegisterPage() {
+export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth(); // Obtener la función login del contexto
 
-  const [nombreCompleto, setNombreCompleto] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [password2, setPassword2] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
-  const [success, setSuccess] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-    setFieldErrors({});
-
-    const errs: Record<string,string> = {};
-    if (!nombreCompleto || !nombreCompleto.trim()) errs.nombreCompleto = 'El nombre es obligatorio';
-    if (!email || !email.trim()) errs.email = 'El email es obligatorio';
-    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errs.email = 'Email inválido';
-    if (!password || password.length < 6) errs.password = 'La contraseña debe tener al menos 6 caracteres';
-    if (password !== password2) errs.password2 = 'Las contraseñas no coinciden';
-    if (Object.keys(errs).length) { setFieldErrors(errs); return; }
-
     setLoading(true);
+    setError("");
 
     try {
-      const res = await fetch("/api/usuario/register", {
+      const res = await fetch("/api/usuario/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nombre: nombreCompleto,
-          email,
-          password,
-          role: "admin",
-        }
-      ),
+        credentials: 'include',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
-      if (!res.ok || !data.success) {
-        setError(data.error || "No se pudo registrar el usuario");
-      } else {
-        setSuccess("Usuario registrado correctamente");
-        // Opcional: redirigir al login después de unos segundos
-        router.push("/login");
+      if (!data.success) {
+        setError(data.error || "Credenciales incorrectas");
+        setLoading(false);
+        return;
       }
+
+      // Pasamos los datos del usuario al contexto para actualizar inmediatamente el estado
+      login(data.data);
+      router.push("/"); 
     } catch (err) {
       console.error(err);
       setError("Error de conexión con el servidor");
@@ -67,127 +48,76 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* BARRA SUPERIOR CON BOTÓN INICIAR SESIÓN */}
-      <header className="w-full bg-[#e5e7eb] h-20 flex items-center justify-end px-10">
-        <button
+      {/* BARRA SUPERIOR + BOTÓN REGISTRARSE (como en Figma) */}
+      {/* Responsive: h-16 en mobile, h-20 en desktop. Padding reducido en mobile. */}
+      <header className="w-full bg-[#e5e7eb] h-16 md:h-20 flex items-center justify-end px-4 md:px-10">
+        {/*<button
           type="button"
-          onClick={() => router.push("/login")}
+          onClick={() => router.push("/register")} // cambia la ruta si usás otra
           className="px-6 py-2 rounded-sm bg-[#243343] text-white text-sm font-medium hover:bg-[#1b2633]"
         >
-          Iniciar sesión
-        </button>
+          Registrarse
+        </button>*/}
       </header>
 
       {/* CONTENIDO CENTRAL */}
-      <main className="flex-1 flex flex-col items-center mt-10 px-4">
+      <main className="flex-1 flex flex-col items-center mt-6 md:mt-10 px-4">
+        {/* LOGO CENTRADO */}
+        {/* Responsive: menos margen inferior en mobile */}
+        <div className="mb-6 md:mb-10">
+          <Image
+            src="/images/logo.svg" 
+            alt="Logo SGMI"
+            width={140}
+            height={140}
+          />
+        </div>
+
+        {/* CARD DEL FORMULARIO (como la primera captura) */}
+        {/* Responsive: padding interno reducido (px-6) en mobile para dar aire a los inputs */}
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-md bg-white shadow-[0_0_25px_rgba(15,23,42,0.08)] rounded-2xl px-10 py-8 space-y-5 border border-[#f3f4f6]"
+          className="w-full max-w-md bg-white shadow-[0_0_25px_rgba(15,23,42,0.08)] rounded-2xl px-6 py-6 md:px-10 md:py-8 space-y-5 border border-[#f3f4f6]"
         >
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Nombre Completo
-            </label>
-            <input
-              type="text"
-              placeholder="ej: Juan Carlos García"
-              className={`w-full rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 ${
-                fieldErrors.nombreCompleto
-                  ? 'border-2 border-red-500 focus:ring-red-500'
-                  : 'border border-gray-300 focus:ring-gray-400'
-              }`}
-              value={nombreCompleto}
-              onChange={(e) => setNombreCompleto(e.target.value)}
-              onBlur={() => {
-                const errs = { ...fieldErrors };
-                if (!nombreCompleto || !nombreCompleto.trim()) errs.nombreCompleto = 'El nombre es obligatorio';
-                else delete errs.nombreCompleto;
-                setFieldErrors(errs);
-              }}
-              required
-            />
-            {fieldErrors.nombreCompleto && <Hint show={true} message={fieldErrors.nombreCompleto} type="error" />}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700">Email</label>
             <input
               type="email"
               placeholder="ejemplo@email.com"
-              className={`w-full rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 ${
-                fieldErrors.email
-                  ? 'border-2 border-red-500 focus:ring-red-500'
-                  : 'border border-gray-300 focus:ring-gray-400'
-              }`}
+              className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => {
-                const errs = { ...fieldErrors };
-                if (!email || !email.trim()) errs.email = 'El email es obligatorio';
-                else if (!/^[^\@\s]+@[^\@\s]+\.[^\@\s]+$/.test(email)) errs.email = 'Email inválido';
-                else delete errs.email;
-                setFieldErrors(errs);
-              }}
               required
             />
-            {fieldErrors.email && <Hint show={true} message={fieldErrors.email} type="error" />}
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium mb-1 text-gray-700">
               Contraseña
             </label>
             <input
               type="password"
               placeholder="ejemplo1234"
-              className={`w-full rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 ${
-                fieldErrors.password
-                  ? 'border-2 border-red-500 focus:ring-red-500'
-                  : 'border border-gray-300 focus:ring-gray-400'
-              }`}
+              className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onBlur={() => {
-                const errs = { ...fieldErrors };
-                if (!password || password.length < 6) errs.password = 'La contraseña debe tener al menos 6 caracteres';
-                else delete errs.password;
-                setFieldErrors(errs);
-              }}
               required
             />
-            {fieldErrors.password && <Hint show={true} message={fieldErrors.password} type="error" />}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Confirmar contraseña
-            </label>
-            <input
-              type="password"
-              className={`w-full rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-1 ${
-                fieldErrors.password2
-                  ? 'border-2 border-red-500 focus:ring-red-500'
-                  : 'border border-gray-300 focus:ring-gray-400'
-              }`}
-              value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
-              onBlur={() => {
-                const errs = { ...fieldErrors };
-                if (password !== password2) errs.password2 = 'Las contraseñas no coinciden';
-                else delete errs.password2;
-                setFieldErrors(errs);
-              }}
-              required
-            />
-            {fieldErrors.password2 && <Hint show={true} message={fieldErrors.password2} type="error" />}
-          </div>
+          {/*<div className="text-left">
+            <button
+              type="button"
+              className="text-xs underline text-gray-700 hover:text-gray-900"
+              // acá después podés hacer router.push("/forgot-password")
+              onClick={() => console.log("Recuperar contraseña")}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>*/}
 
           {error && (
             <p className="text-red-600 text-sm text-center">{error}</p>
-          )}
-
-          {success && (
-            <p className="text-emerald-600 text-sm text-center">{success}</p>
           )}
 
           <button
@@ -197,16 +127,6 @@ export default function RegisterPage() {
           >
             {loading ? "Registrando..." : "Registrarse"}
           </button>
-
-          <div className="pt-2 text-center">
-            <button
-              type="button"
-              onClick={() => router.push("/login")}
-              className="text-xs underline text-gray-700 hover:text-gray-900"
-            >
-              ¿Ya estás registrado?
-            </button>
-          </div>
         </form>
       </main>
     </div>

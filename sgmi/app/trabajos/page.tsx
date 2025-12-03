@@ -20,7 +20,6 @@ function TrabajosPage() {
   const [showError, setShowError] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
   const [errorDesc, setErrorDesc] = useState("");
-  // Modal confirmar eliminación (reemplaza ModalEliminar)
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [modalDatos, setModalDatos] = useState(false);
   const [editInitialData, setEditInitialData] = useState<any | null>(null);
@@ -30,13 +29,15 @@ function TrabajosPage() {
   );
   const [openVer, setOpenVer] = useState(false);
   const [verTrabajo, setVerTrabajo] = useState<any | null>(null);
-  const [modoGlobal, setModoGlobal] = useState(false); // false=nacional 🇦🇷 / true=global 🌍
+  const [modoGlobal, setModoGlobal] = useState(false);
   const [busqueda, setBusqueda] = useState("");
 
-  // Estado de trabajos traídos desde la API
   const [trabajos, setTrabajos] = useState<any[]>([]);
   const [loadingTrabajos, setLoadingTrabajos] = useState(false);
   const [errorTrabajos, setErrorTrabajos] = useState<string | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchTrabajos = async () => {
     try {
@@ -67,9 +68,11 @@ function TrabajosPage() {
     fetchTrabajos();
   }, []);
 
-  // Filtrado por modo (nacional/internacional) y búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [busqueda, modoGlobal]);
+
   const filtrados = trabajos.filter((t) => {
-    // Usar el campo `reunion_tipo` que trae la consulta ('NACIONAL'|'INTERNACIONAL')
     const tipo =
       t.reunion_tipo === "INTERNACIONAL" ? "internacional" : "nacional";
     return modoGlobal ? tipo === "internacional" : tipo === "nacional";
@@ -80,6 +83,18 @@ function TrabajosPage() {
     return (t.titulo || "").toLowerCase().includes(q);
   });
 
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentTrabajos = trabajosFinal.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(trabajosFinal.length / itemsPerPage);
+
+  const nextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
 
   const formatDateShort = (d: any) => {
     if (!d) return "-";
@@ -96,23 +111,22 @@ function TrabajosPage() {
     <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
       <Sidebar />
 
-      {/* CONTENIDO PRINCIPAL */}
-      <main className="flex-1 px-12 py-8 bg-white">
-        {/* HEADER SUPERIOR */}
-        <div className="flex items-center justify-between mb-10">
+      <main className="flex-1 px-4 py-6 md:px-12 md:py-8 bg-white overflow-y-auto h-screen w-full">
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-10 gap-4 mt-12 md:mt-0">
           <div>
-            <h1 className="text-3xl font-semibold text-gray-800">
+            <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">
               Gestión de Trabajos Presentados en Reuniones
             </h1>
           </div>
 
-          <UserPill />
+          <div className="self-end md:self-auto">
+            <UserPill />
+          </div>
         </div>
 
-        {/* BUSCADOR + TOGGLE + BOTÓN */}
-        <div className="flex items-center justify-between mb-6">
-          {/* BUSCADOR */}
-          <div className="relative w-80">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+          <div className="relative w-full md:w-80">
             <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
@@ -123,123 +137,143 @@ function TrabajosPage() {
             />
           </div>
 
-          {/* TOGGLE BONITO */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
             <div
               onClick={() => setModoGlobal(!modoGlobal)}
               className={`
-                w-20 h-9 flex items-center rounded-full p-1 cursor-pointer transition-all
+                w-20 h-9 flex items-center rounded-full p-1 cursor-pointer transition-all flex-shrink-0
                 ${modoGlobal ? "bg-[#00c9a7]" : "bg-gray-300"}
               `}
             >
               <div
                 className={`
-    w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center overflow-hidden transition-all
-    ${modoGlobal ? "translate-x-11" : "translate-x-0"}
-  `}
+                  w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center overflow-hidden transition-all
+                  ${modoGlobal ? "translate-x-11" : "translate-x-0"}
+                `}
               >
                 {modoGlobal ? (
                   <img
                     src="/earth.png"
-                    alt="Argentina"
+                    alt="Internacional"
                     className="w-full h-full object-cover rounded-full"
                   />
                 ) : (
                   <img
                     src="/arg.png"
-                    alt="Argentina"
+                    alt="Nacional"
                     className="w-full h-full object-cover rounded-full"
                   />
                 )}
               </div>
             </div>
 
-            {/* Botón de añadir */}
             <button
               onClick={() => setModalDatos(true)}
-              className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] hover:bg-[#00b197]"
+              className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] hover:bg-[#00b197] whitespace-nowrap"
             >
               + Añadir Trabajo
             </button>
           </div>
         </div>
 
-        {/* TABLA */}
-        <div className="border border-gray-300 rounded-lg overflow-hidden">
-          {/* ENCABEZADOS */}
-          <div className="grid grid-cols-5 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
-            <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
-            <div className="px-4 py-3 border-r border-gray-300">
-              {modoGlobal ? "País" : "Ciudad"}
-            </div>
-            <div className="px-4 py-3 border-r border-gray-300">Fecha</div>
-            <div className="px-4 py-3 border-r border-gray-300">Reunión</div>
-            <div className="px-4 py-3">Acciones</div>
-          </div>
-
-          {/* FILAS */}
-          {loadingTrabajos ? (
-            <div className="text-center py-6 text-gray-500">
-              Cargando trabajos...
-            </div>
-          ) : trabajosFinal.length > 0 ? (
-            trabajosFinal.map((t, i) => (
-              <div
-                key={i}
-                className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"
-                  }`}
-              >
-                <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                  {t.titulo || "-"}
-                </div>
-
-                <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                  {modoGlobal ? t.pais || "-" : t.ciudad || "-"}
-                </div>
-
-                <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                  {formatDateShort(t.fecha_presentacion || t.fecha_creacion)}
-                </div>
-
-                <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                  {t.reunion || t.reunion_id || "-"}
-                </div>
-
-                {/* ACCIONES */}
-                <div className="px-4 py-4 flex items-center gap-4">
-                  {/* Ver */}
-                  <HiOutlineEye
-                    onClick={() => {
-                      setVerTrabajo(t);
-                      setOpenVer(true);
-                    }}
-                    className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
-                  />
-
-                  {/* Eliminar (icono igual que en Usuarios) */}
-                  <HiOutlineTrash
-                    onClick={() => {
-                      setTrabajoSeleccionado(t);
-                      setShowConfirmDelete(true);
-                    }}
-                    className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
-                  />
-                </div>
+        <div className="border border-gray-300 rounded-lg overflow-hidden w-full overflow-x-auto">
+          <div className="min-w-[900px]">
+            <div className="grid grid-cols-5 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
+              <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
+              <div className="px-4 py-3 border-r border-gray-300">
+                {modoGlobal ? "País" : "Ciudad"}
               </div>
-            ))
-          ) : (
-            <div className="text-center py-6 text-gray-500">
-              No hay trabajos para mostrar
+              <div className="px-4 py-3 border-r border-gray-300">Fecha</div>
+              <div className="px-4 py-3 border-r border-gray-300">Reunión</div>
+              <div className="px-4 py-3">Acciones</div>
             </div>
-          )}
+
+            {loadingTrabajos ? (
+              <div className="text-center py-6 text-gray-500">
+                Cargando trabajos...
+              </div>
+            ) : trabajosFinal.length > 0 ? (
+              currentTrabajos.map((t, i) => (
+                <div
+                  key={i}
+                  className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"
+                    }`}
+                >
+                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                    {t.titulo || "-"}
+                  </div>
+
+                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                    {modoGlobal ? t.pais || "-" : t.ciudad || "-"}
+                  </div>
+
+                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
+                    {formatDateShort(t.fecha_presentacion || t.fecha_creacion)}
+                  </div>
+
+                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                    {t.reunion || t.reunion_id || "-"}
+                  </div>
+
+                  <div className="px-4 py-4 flex items-center gap-4">
+                    <HiOutlineEye
+                      onClick={() => {
+                        setVerTrabajo(t);
+                        setOpenVer(true);
+                      }}
+                      className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
+                      title="Ver detalles"
+                    />
+
+                    <HiOutlineTrash
+                      onClick={() => {
+                        setTrabajoSeleccionado(t);
+                        setShowConfirmDelete(true);
+                      }}
+                      className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
+                      title="Eliminar"
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-gray-500">
+                No hay trabajos para mostrar
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* PAGINACIÓN */}
-        <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
-          <button className="px-2 py-1 hover:bg-gray-100 rounded">←</button>
-          <span className="px-3 py-1 rounded bg-[#27333d] text-white">1</span>
-          <button className="px-2 py-1 hover:bg-gray-100 rounded">→</button>
-        </div>
+        {totalPages > 1 && (
+          <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
+            <button
+              onClick={prevPage}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 rounded border ${
+                currentPage === 1 
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              ← Anterior
+            </button>
+            <span className="px-3 py-1 rounded bg-[#27333d] text-white">
+              {currentPage} de {totalPages}
+            </span>
+            <button 
+              onClick={nextPage}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-1 rounded border ${
+                currentPage === totalPages
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Siguiente →
+            </button>
+          </div>
+        )}
+
         {modalDatos && (
           <ModalTrabajo
             open={modalDatos}
@@ -252,7 +286,6 @@ function TrabajosPage() {
               setEditId(null);
             }}
             onSave={(data: any) => {
-              // si la creación/edición fue exitosa, refrescar la lista
               if (data?.success) fetchTrabajos();
               else fetchTrabajos();
               setEditInitialData(null);
@@ -261,7 +294,6 @@ function TrabajosPage() {
           />
         )}
 
-        {/* Modal eliminar */}
         <ConfirmModal
           open={showConfirmDelete}
           onClose={() => {
@@ -307,8 +339,6 @@ function TrabajosPage() {
           description={errorDesc}
         />
 
-
-        {/* Modal ver trabajo */}
         <ModalVerTrabajo
           open={openVer}
           trabajo={verTrabajo}
@@ -317,7 +347,6 @@ function TrabajosPage() {
             setVerTrabajo(null);
           }}
           onEdit={(t: any) => {
-            // abrir modal de edición prellenado
             setOpenVer(false);
             setVerTrabajo(null);
             setEditInitialData(t);

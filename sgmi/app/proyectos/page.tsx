@@ -12,7 +12,6 @@ import ErrorModal from "../components/alerts/ErrorModal";
 import ConfirmModal from "../components/alerts/ConfrimModal";
 import { Toast, ModalSwal } from '@/app/lib/swal';
 
-// Definimos el estado inicial fuera o como constante para reutilizarlo
 const INITIAL_FORM_STATE = {
   tipo: "",
   codigo: "",
@@ -30,21 +29,17 @@ function ProyectosPage() {
   const [modalDatos, setModalDatos] = useState(false);
   const [modalDetalles, setModalDetalles] = useState(false);
 
-  // Usamos la constante para el estado inicial
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
-  // Modal de error
   const [showError, setShowError] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
   const [errorDesc, setErrorDesc] = useState("");
 
-  // Modal confirmar eliminación
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [modalVer, setModalVer] = useState(false);
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState<any | null>(null);
   
-  // editId controla si es POST o PUT
   const [editId, setEditId] = useState<number | null>(null);
 
   type Proyecto = {
@@ -56,14 +51,11 @@ function ProyectosPage() {
 
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
 
-  const proyectosFiltrados = proyectos.filter((p) =>
-    (p.nombre || "").toLowerCase().includes(busqueda.toLowerCase()) ||
-    (p.codigo || "").toLowerCase().includes(busqueda.toLowerCase()) ||
-    (p.tipo || "").toLowerCase().includes(busqueda.toLowerCase())
-  );
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   async function loadProyectos() {
     setLoading(true);
@@ -97,7 +89,10 @@ function ProyectosPage() {
     loadProyectos();
   }, []);
 
- 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [busqueda]);
+
   function handleNewProyecto() {
     setEditId(null); 
     setFormData(INITIAL_FORM_STATE); 
@@ -179,20 +174,41 @@ function ProyectosPage() {
     setModalDatos(true);
   }
 
+  const proyectosFiltrados = proyectos.filter((p) =>
+    (p.nombre || "").toLowerCase().includes(busqueda.toLowerCase()) ||
+    (p.codigo || "").toLowerCase().includes(busqueda.toLowerCase()) ||
+    (p.tipo || "").toLowerCase().includes(busqueda.toLowerCase())
+  );
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProyectos = proyectosFiltrados.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(proyectosFiltrados.length / itemsPerPage);
+
+  const nextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
   return (
     <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
       <Sidebar />
 
-      <main className="flex-1 px-12 py-8 bg-white">
-        <div className="flex items-center justify-between mb-10">
-          <h1 className="text-3xl font-semibold text-gray-800 whitespace-nowrap">
+      <main className="flex-1 px-4 py-6 md:px-12 md:py-8 bg-white overflow-y-auto h-screen w-full">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-10 gap-4 mt-12 md:mt-0">
+          <h1 className="text-2xl md:text-3xl font-semibold text-gray-800 whitespace-nowrap">
             Gestión de Proyectos de I+D+i
           </h1>
-          <UserPill />
+          <div className="self-end md:self-auto">
+             <UserPill />
+          </div>
         </div>
 
-        <div className="flex items-center justify-between mb-6">
-          <div className="relative w-80">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+          <div className="relative w-full md:w-80">
             <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
@@ -202,79 +218,102 @@ function ProyectosPage() {
             />
           </div>
 
-          
           <button
             onClick={handleNewProyecto} 
-            className="px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] shadow-sm hover:bg-[#00b197]"
+            className="w-full md:w-auto px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] shadow-sm hover:bg-[#00b197]"
           >
             + Añadir Proyecto
           </button>
         </div>
 
-        <div className="border border-gray-300 rounded-lg overflow-hidden w-full">
-          <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
-            <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
-            <div className="px-4 py-3 border-r border-gray-300">Código</div>
-            <div className="px-4 py-3 border-r border-gray-300">Tipo de Proyecto</div>
-            <div className="px-4 py-3">Acciones</div>
-          </div>
-
-          {loading && (
-            <div className="p-6 text-center text-sm text-gray-600">Cargando proyectos...</div>
-          )}
-
-          {error && !loading && (
-            <div className="p-6 text-center text-sm text-red-600">Error: {error}</div>
-          )}
-
-          {!loading && !error && proyectos.length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-600">No hay proyectos registrados.</div>
-          )}
-
-          {proyectosFiltrados.map((p, i) => (
-            <div
-              key={p.id}
-              className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
-            >
-              <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                {p.nombre}
-              </div>
-              <div className="px-4 py-4 border-r border-gray-300 text-gray-700">
-                {p.codigo}
-              </div>
-              <div className="px-4 py-4 border-r border-gray-300 text-gray-700">{p.tipo}</div>
-
-              <div className="px-4 py-4 flex items-center gap-4">
-                <HiOutlineEye
-                  title="Ver"
-                  onClick={() => {
-                    setProyectoSeleccionado(p);
-                    setModalVer(true);
-                  }}
-                  className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
-                />
-                <HiOutlineTrash
-                  title="Eliminar"
-                  onClick={() => {
-                    setProyectoSeleccionado(p);
-                    setShowConfirmDelete(true);
-                  }}
-                  className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
-                />
-              </div>
+        <div className="border border-gray-300 rounded-lg overflow-hidden w-full overflow-x-auto">
+          <div className="min-w-[800px]">
+            <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
+              <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
+              <div className="px-4 py-3 border-r border-gray-300">Código</div>
+              <div className="px-4 py-3 border-r border-gray-300">Tipo de Proyecto</div>
+              <div className="px-4 py-3">Acciones</div>
             </div>
-          ))}
+
+            {loading && (
+              <div className="p-6 text-center text-sm text-gray-600">Cargando proyectos...</div>
+            )}
+
+            {error && !loading && (
+              <div className="p-6 text-center text-sm text-red-600">Error: {error}</div>
+            )}
+
+            {!loading && !error && proyectos.length === 0 && (
+              <div className="p-6 text-center text-sm text-gray-600">No hay proyectos registrados.</div>
+            )}
+
+            {currentProyectos.map((p, i) => (
+              <div
+                key={p.id}
+                className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
+              >
+                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                  {p.nombre}
+                </div>
+                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                  {p.codigo}
+                </div>
+                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">{p.tipo}</div>
+
+                <div className="px-4 py-4 flex items-center gap-4">
+                  <HiOutlineEye
+                    title="Ver"
+                    onClick={() => {
+                      setProyectoSeleccionado(p);
+                      setModalVer(true);
+                    }}
+                    className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
+                  />
+                  <HiOutlineTrash
+                    title="Eliminar"
+                    onClick={() => {
+                      setProyectoSeleccionado(p);
+                      setShowConfirmDelete(true);
+                    }}
+                    className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
         
-        {/* Paginación simple... */}
-        <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
-          <button className="px-2 py-1 hover:bg-gray-100 rounded">←</button>
-          <span className="px-3 py-1 rounded bg-[#27333d] text-white">1</span>
-          <button className="px-2 py-1 hover:bg-gray-100 rounded">→</button>
-        </div>
+        {totalPages > 1 && (
+          <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
+            <button
+              onClick={prevPage}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 rounded border ${
+                currentPage === 1 
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              ← Anterior
+            </button>
+            <span className="px-3 py-1 rounded bg-[#27333d] text-white">
+              {currentPage} de {totalPages}
+            </span>
+            <button 
+              onClick={nextPage}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-1 rounded border ${
+                currentPage === totalPages
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Siguiente →
+            </button>
+          </div>
+        )}
       </main>
 
-      {/* Modales... */}
       {modalDatos && (
         <ModalProyectoDatos
           open={modalDatos}
