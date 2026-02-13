@@ -5,67 +5,110 @@ export interface IMemoria {
   grupo_id: number;
   anio: number;
   contenido?: string;
+  deleted_at?: Date | null;
 }
 
 export class MemoriaModel {
+  
+  /**
+   * Crear memoria (SOLO si el grupo existe y está activo)
+   */
   static async create(data: IMemoria) {
-    const q = `INSERT INTO memorias (grupo_id, anio, contenido) VALUES ($1, $2, $3) RETURNING *`;
+    // Chequear que el grupo esté vivo
+    const grupoCheck = await pool.query(
+      'SELECT id FROM grupos WHERE id = $1 AND deleted_at IS NULL', 
+      [data.grupo_id]
+    );
+
+    if (grupoCheck.rows.length === 0) {
+      throw new Error('No se puede crear una memoria para un grupo eliminado o inexistente.');
+    }
+
+    // Si el grupo está vivo, procedemos a insertar
+    const q = `
+      INSERT INTO memorias (grupo_id, anio, contenido) 
+      VALUES ($1, $2, $3) 
+      RETURNING *
+    `;
     const r = await pool.query(q, [data.grupo_id, data.anio, data.contenido || null]);
     return r.rows[0];
   }
 
-
   static async findById(id: number) {
-    //  Buscar la memoria base CON el nombre del grupo
+
+    // Buscar la memoria base y verificar que su grupo no este eliminado
+  
     const memoriaRes = await pool.query(
       `SELECT m.*, g.nombre AS grupo_nombre 
        FROM memorias m
-       LEFT JOIN grupos g ON m.grupo_id = g.id
-       WHERE m.id = $1`, 
+       JOIN grupos g ON m.grupo_id = g.id AND g.deleted_at IS NULL
+       WHERE m.id = $1 AND m.deleted_at IS NULL`, 
       [id]
     );
     
     if (memoriaRes.rows.length === 0) return null;
     const memoria = memoriaRes.rows[0];
 
-    //  Ejecutar consultas de Proyectos y Trabajos en paralelo
+    //  Ejecutar consultas de hijos en paralelo
     const [proyectosRes, trabajosRes] = await Promise.all([
      
+      // Investigaciones activas
       pool.query(
-        'SELECT * FROM investigaciones WHERE memoria_id = $1 ORDER BY id DESC', 
+        `SELECT * FROM investigaciones 
+         WHERE memoria_id = $1 
+         AND deleted_at IS NULL 
+         ORDER BY id DESC`, 
         [id]
       ),
 
-      
+      // Trabajos activos
       pool.query(
         `SELECT tc.*, 
                 r.nombre AS reunion, 
-                r.ciudad AS ciudad, 
-                r.tipo AS reunion_tipo, 
-                r.pais AS pais,
-                p.nombre AS expositor_nombre,
-                m.anio AS memoria_anio,
-                g.nombre AS grupo_nombre
+                r.ciudad, r.tipo, r.pais,
+                p.nombre AS expositor_nombre
          FROM trabajos_congresos tc
          LEFT JOIN reuniones r ON tc.reunion_id = r.id
          LEFT JOIN personal p ON tc.expositor_id = p.id
-         LEFT JOIN memorias m ON tc.memoria_id = m.id
-         LEFT JOIN grupos g ON m.grupo_id = g.id
-         WHERE tc.memoria_id = $1
+         WHERE tc.memoria_id = $1 
+         AND tc.deleted_at IS NULL
          ORDER BY tc.fecha_presentacion DESC`,
         [id]
       )
     ]);
 
-    
     return {
       ...memoria,
       proyectos: proyectosRes.rows, 
       trabajos: trabajosRes.rows    
     };
   }
+  
+  // transaccion para borrar una memoria y sus hijos (investigaciones y trabajos)
+  static async delete(id: number) { 
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const now = new Date();
 
+      // Borrar hijos
+      await client.query(`UPDATE investigaciones SET deleted_at = $1 WHERE memoria_id = $2 AND deleted_at IS NULL`, [now, id]);
+      await client.query(`UPDATE trabajos_congresos SET deleted_at = $1 WHERE memoria_id = $2 AND deleted_at IS NULL`, [now, id]);
 
+      // Borrar la Memoria
+      const result = await client.query(
+        `UPDATE memorias SET deleted_at = $1 WHERE id = $2 AND deleted_at IS NULL RETURNING id`, 
+        [now, id]
+      );
 
-  static async delete(id: number) { const r = await pool.query('DELETE FROM memorias WHERE id = $1 RETURNING id', [id]); return r.rows.length > 0 }
+      await client.query('COMMIT');
+      return result.rows.length > 0;
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }

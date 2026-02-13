@@ -9,38 +9,78 @@ export interface ITrabajo {
   memoria_id?: number | null;
   fecha_presentacion?: string | null;
   fecha_creacion?: Date;
+  deleted_at?: Date | null;
 }
 
 export class TrabajoModel {
+  
   static async create(data: ITrabajo): Promise<ITrabajo> {
-    const q = `INSERT INTO trabajos_congresos (titulo, resumen, expositor_id, reunion_id, memoria_id, fecha_presentacion)
-    VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`;
-    const r = await pool.query(q, [data.titulo, data.resumen || null, data.expositor_id || null, data.reunion_id || null, data.memoria_id || null, data.fecha_presentacion || null]);
+    // No permitir crear trabajos en memorias borradas
+    const checkMemoria = await pool.query(
+      'SELECT id FROM memorias WHERE id = $1 AND deleted_at IS NULL',
+      [data.memoria_id]
+    );
+
+    if (checkMemoria.rows.length === 0) {
+      throw new Error("No se puede asignar un trabajo a una memoria eliminada o inexistente.");
+    }
+
+  
+    const q = `
+      INSERT INTO trabajos_congresos (
+        titulo, resumen, expositor_id, reunion_id, memoria_id, fecha_presentacion
+      )
+      VALUES ($1, $2, $3, $4, $5, $6) 
+      RETURNING *
+    `;
+    const r = await pool.query(q, [
+      data.titulo, 
+      data.resumen || null, 
+      data.expositor_id || null, 
+      data.reunion_id || null, 
+      data.memoria_id || null, 
+      data.fecha_presentacion || null
+    ]);
     return r.rows[0];
   }
 
   static async findAll() {
-    let q = `SELECT tc.*, 
-                    r.nombre AS reunion, 
-                    r.ciudad AS ciudad, 
-                    r.tipo AS reunion_tipo, 
-                    r.pais AS pais,
-                    p.nombre AS expositor_nombre,
-                    m.anio AS memoria_anio,
-                    g.nombre AS grupo_nombre
-             FROM trabajos_congresos tc
-             LEFT JOIN reuniones r ON tc.reunion_id = r.id
-             LEFT JOIN personal p ON tc.expositor_id = p.id
-             LEFT JOIN memorias m ON tc.memoria_id = m.id
-             LEFT JOIN grupos g ON m.grupo_id = g.id`;
+    // LÓGICA DE FILTRADO MIXTA:
+    // - TC (Trabajo): Debe estar vivo (deleted_at IS NULL).
+    // - M (Memoria - Padre): Debe estar viva.
+    // - G (Grupo - Abuelo): Debe estar vivo.
+    // - R (Reunión) y P (Personal): NO filtramos por deleted_at. 
+    //   Si borraste al profesor "Juan", igual querés que salga que él presentó el trabajo en 2023.
+    
+    let q = `
+      SELECT tc.*, 
+             r.nombre AS reunion, 
+             r.ciudad AS ciudad, 
+             r.tipo AS reunion_tipo, 
+             r.pais AS pais,
+             p.nombre AS expositor_nombre,
+             m.anio AS memoria_anio,
+             g.nombre AS grupo_nombre
+      FROM trabajos_congresos tc
+      -- Joins Estructurales (Padres): Deben estar vivos
+      JOIN memorias m ON tc.memoria_id = m.id AND m.deleted_at IS NULL
+      JOIN grupos g ON m.grupo_id = g.id AND g.deleted_at IS NULL
+      -- Joins Informativos (Asociaciones): Traemos aunque estén borrados (histórico)
+      LEFT JOIN reuniones r ON tc.reunion_id = r.id
+      LEFT JOIN personal p ON tc.expositor_id = p.id
+      WHERE tc.deleted_at IS NULL
+      ORDER BY tc.fecha_presentacion DESC`;
 
-   
     const r = await pool.query(q);
     return r.rows;
   }
 
   static async findById(id: number) {
-    const r = await pool.query('SELECT * FROM trabajos_congresos WHERE id = $1', [id]);
+    // Solo traemos si el trabajo no está borrado
+    const r = await pool.query(
+      'SELECT * FROM trabajos_congresos WHERE id = $1 AND deleted_at IS NULL', 
+      [id]
+    );
     return r.rows.length ? r.rows[0] : null;
   }
 
@@ -48,21 +88,39 @@ export class TrabajoModel {
     const updates: string[] = [];
     const params: any[] = [];
     let idx = 1;
+
+
     if (data.titulo !== undefined) { updates.push(`titulo = $${idx++}`); params.push(data.titulo); }
     if (data.resumen !== undefined) { updates.push(`resumen = $${idx++}`); params.push(data.resumen); }
     if (data.expositor_id !== undefined) { updates.push(`expositor_id = $${idx++}`); params.push(data.expositor_id); }
     if (data.reunion_id !== undefined) { updates.push(`reunion_id = $${idx++}`); params.push(data.reunion_id); }
     if (data.memoria_id !== undefined) { updates.push(`memoria_id = $${idx++}`); params.push(data.memoria_id); }
     if (data.fecha_presentacion !== undefined) { updates.push(`fecha_presentacion = $${idx++}`); params.push(data.fecha_presentacion); }
+
     if (!updates.length) return null;
+    
     params.push(id);
-    const q = `UPDATE trabajos_congresos SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
+    
+  
+    const q = `
+      UPDATE trabajos_congresos 
+      SET ${updates.join(', ')} 
+      WHERE id = $${idx} AND deleted_at IS NULL 
+      RETURNING *`;
+      
     const r = await pool.query(q, params);
     return r.rows.length ? r.rows[0] : null;
   }
 
   static async delete(id: number) {
-    const r = await pool.query('DELETE FROM trabajos_congresos WHERE id = $1 RETURNING id', [id]);
+   
+    const q = `
+      UPDATE trabajos_congresos 
+      SET deleted_at = NOW() 
+      WHERE id = $1 AND deleted_at IS NULL 
+      RETURNING id`;
+      
+    const r = await pool.query(q, [id]);
     return r.rows.length > 0;
   }
 }

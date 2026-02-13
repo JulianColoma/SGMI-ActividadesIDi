@@ -8,19 +8,52 @@ export interface IReunion {
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
   pais?: string | null;
+  deleted_at?: Date | null;
 }
 
 export class ReunionModel {
+  
+
+  static async findAll() {
+    const q = 'SELECT * FROM reuniones WHERE deleted_at IS NULL ORDER BY fecha_inicio DESC';
+    const r = await pool.query(q);
+    return r.rows;
+  }
+
+  static async findById(id: number) {
+    const q = 'SELECT * FROM reuniones WHERE id = $1 AND deleted_at IS NULL';
+    const r = await pool.query(q, [id]);
+    return r.rows.length ? r.rows[0] : null;
+  }
+
+ 
   static async findByNameCity(nombre: string, ciudad?: string | null) {
-    const q = 'SELECT * FROM reuniones WHERE nombre = $1 AND (ciudad = $2 OR ($2 IS NULL AND ciudad IS NULL)) LIMIT 1';
+    const q = `
+      SELECT * FROM reuniones 
+      WHERE nombre = $1 
+      AND (ciudad = $2 OR ($2 IS NULL AND ciudad IS NULL)) 
+      AND deleted_at IS NULL 
+      LIMIT 1`;
+      
     const r = await pool.query(q, [nombre, ciudad || null]);
     return r.rows.length ? r.rows[0] : null;
   }
 
   static async create(data: IReunion) {
-    const q = `INSERT INTO reuniones (tipo, nombre, ciudad, fecha_inicio, fecha_fin, pais)
-               VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`;
-    const params = [data.tipo || null, data.nombre, data.ciudad || null, data.fecha_inicio || null, data.fecha_fin || null, data.pais || null];
+    const q = `
+      INSERT INTO reuniones (tipo, nombre, ciudad, fecha_inicio, fecha_fin, pais)
+      VALUES ($1, $2, $3, $4, $5, $6) 
+      RETURNING *`;
+      
+    const params = [
+      data.tipo || null, 
+      data.nombre, 
+      data.ciudad || null, 
+      data.fecha_inicio || null, 
+      data.fecha_fin || null, 
+      data.pais || null
+    ];
+    
     const r = await pool.query(q, params);
     return r.rows[0];
   }
@@ -39,9 +72,28 @@ export class ReunionModel {
 
     if (fields.length === 0) return null;
 
-    const q = `UPDATE reuniones SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
     params.push(id);
+
+    // Solo permitimos editar si NO está borrada
+    const q = `
+      UPDATE reuniones 
+      SET ${fields.join(', ')} 
+      WHERE id = $${idx} AND deleted_at IS NULL 
+      RETURNING *`;
+      
     const r = await pool.query(q, params);
     return r.rows.length ? r.rows[0] : null;
+  }
+
+  // borrado logico simple (Solo marca la reunión, no toca los trabajos)
+  static async delete(id: number) {
+    const q = `
+      UPDATE reuniones 
+      SET deleted_at = NOW() 
+      WHERE id = $1 AND deleted_at IS NULL 
+      RETURNING id`;
+      
+    const r = await pool.query(q, [id]);
+    return r.rows.length > 0;
   }
 }

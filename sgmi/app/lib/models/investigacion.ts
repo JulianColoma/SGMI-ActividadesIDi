@@ -13,6 +13,7 @@ export interface IInvestigacion {
   fuente_financiamiento?: string;
   memoria_id: number;
   fecha_creacion?: Date;
+  deleted_at?: Date | null;
 }
 
 export class InvestigacionModel {
@@ -40,21 +41,23 @@ export class InvestigacionModel {
   }
 
    static async findAll() {
-    
-    let q = `SELECT i.*, 
-                    m.anio AS memoria_anio,
-                    g.nombre AS grupo_nombre
-             FROM investigaciones i
-             JOIN memorias m ON i.memoria_id = m.id
-             JOIN grupos g ON m.grupo_id = g.id`;
-    
+  
+   let q = `
+      SELECT i.*, 
+             m.anio AS memoria_anio,
+             g.nombre AS grupo_nombre
+      FROM investigaciones i
+      JOIN memorias m ON i.memoria_id = m.id AND m.deleted_at IS NULL
+      JOIN grupos g ON m.grupo_id = g.id AND g.deleted_at IS NULL
+      WHERE i.deleted_at IS NULL
+      ORDER BY i.id ASC`; 
     
     const result = await pool.query(q);
     return result.rows;
   }
 
   static async findById(id: number): Promise<IInvestigacion | null> {
-    const q = "SELECT * FROM investigaciones WHERE id = $1";
+    const q = "SELECT * FROM investigaciones WHERE id = $1 AND deleted_at IS NULL";
     const r = await pool.query(q, [id]);
     return r.rows.length ? r.rows[0] : null;
   }
@@ -112,13 +115,18 @@ export class InvestigacionModel {
     params.push(id);
     const q = `UPDATE investigaciones SET ${updates.join(
       ", "
-    )} WHERE id = $${idx} RETURNING *`;
+    )} WHERE id = $${idx} AND deleted_at IS NULL RETURNING *`;
     const r = await pool.query(q, params);
     return r.rows.length ? r.rows[0] : null;
   }
 
   static async delete(id: number): Promise<boolean> {
-    const q = "DELETE FROM investigaciones WHERE id = $1 RETURNING id";
+    const q = `
+      UPDATE investigaciones 
+      SET deleted_at = NOW() 
+      WHERE id = $1 AND deleted_at IS NULL 
+      RETURNING id
+    `;
     const r = await pool.query(q, [id]);
     return r.rows.length > 0;
   }
