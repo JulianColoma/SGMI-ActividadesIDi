@@ -20,11 +20,11 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/usuario/login", {
+      const res = await fetch("/api/usuario/register", {
         method: "POST",
         credentials: 'include',
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ nombre: "tomi",email, password, role: "admin" }), // Aseguramos que el rol sea 'user' al registrarse
       });
 
       const data = await res.json();

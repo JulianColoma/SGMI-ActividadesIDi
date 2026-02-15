@@ -23,10 +23,10 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nombre VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user')),
-    estado BOOLEAN DEFAULT true,
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP DEFAULT NULL
+    role VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user'))
+    --estado BOOLEAN DEFAULT true,
+    --fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    --deleted_at TIMESTAMP DEFAULT NULL
 );
 
 -- Grupos de investigación
