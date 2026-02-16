@@ -24,16 +24,26 @@ export class MemoriaModel {
       throw new Error('No se puede crear una memoria para un grupo eliminado o inexistente.');
     }
 
-    // Si el grupo está vivo, procedemos a insertar
+    // Chequear que el grupo NO tenga ya una memoria activa para ese año
+    const memoriaCheck = await pool.query(
+      'SELECT id FROM memorias WHERE grupo_id = $1 AND anio = $2 AND deleted_at IS NULL',
+      [data.grupo_id, data.anio]
+    );
+
+    if (memoriaCheck.rows.length > 0) {
+      throw new Error(`El grupo ya tiene una memoria activa registrada para el año ${data.anio}.`);
+    }
+
+    
     const q = `
       INSERT INTO memorias (grupo_id, anio, contenido) 
       VALUES ($1, $2, $3) 
       RETURNING *
     `;
     const r = await pool.query(q, [data.grupo_id, data.anio, data.contenido || null]);
+    
     return r.rows[0];
-  }
-
+}
   static async findById(id: number) {
 
     // Buscar la memoria base y verificar que su grupo no este eliminado

@@ -62,7 +62,9 @@ export class TrabajoController {
       const r = await TrabajoModel.create(cleanPayload);
       
       // Buscar el registro con los JOINs enriquecidos
+      if (r.id) {
       const enriched = await TrabajoModel.findById(r.id);
+    }
       const allTrabajos = await TrabajoModel.findAll();
       const full = allTrabajos.find(t => t.id === r.id);
       

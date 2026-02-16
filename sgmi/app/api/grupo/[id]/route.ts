@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GrupoController } from '@/app/lib/controllers/grupo';
-import { GrupoSchema } from '@/app/lib/schemas/grupo';
+import { UpdateGrupoInput, UpdateGrupoSchema } from '@/app/lib/schemas/grupo';
 import { getAuth } from '@/app/lib/requestAuth';
 
 /*
@@ -46,7 +46,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
     try {
-      await GrupoSchema.parseAsync(body);
+      await UpdateGrupoSchema.parseAsync(body);
     } catch (e: any) {
       return NextResponse.json({ success: false, error: e.errors || e.message }, { status: 400 });
     }
