@@ -36,41 +36,60 @@ function TrabajosPage() {
   const [loadingTrabajos, setLoadingTrabajos] = useState(false);
   const [errorTrabajos, setErrorTrabajos] = useState<string | null>(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
-  const fetchTrabajos = async () => {
+
+  const fetchTrabajos = async (opts?: { cursor?: string | null; reset?: boolean }) => {
     try {
       setErrorTrabajos(null);
       setLoadingTrabajos(true);
-      const res = await fetch("/api/trabajo", {
+
+      const params = new URLSearchParams();
+      // Si quisieras filtrar por grupoId, acá lo agregás:
+      // params.set("grupoId", String(grupoId));
+
+      if (opts?.cursor) params.set("cursor", opts.cursor);
+
+      const res = await fetch(`/api/trabajo?${params.toString()}`, {
         method: "GET",
         credentials: "include",
       });
+
       const data = await res.json();
+
       if (!res.ok || !data.success) {
-        setErrorTrabajos(
-          data.error || data.message || "Error al obtener trabajos"
-        );
+        setErrorTrabajos(data.error || data.message || "Error al obtener trabajos");
         setTrabajos([]);
+        setHasMore(false);
+        setNextCursor(null);
       } else {
-        setTrabajos(Array.isArray(data.data) ? data.data : []);
+        // ✅ Ahora el backend devuelve items, hasMore, nextCursor
+        setTrabajos(Array.isArray(data.items) ? data.items : []);
+        setHasMore(!!data.hasMore);
+        setNextCursor(data.nextCursor ?? null);
+
+        // Reset visual de paginado si corresponde
+        if (opts?.reset) {
+          setPage(1);
+          setCursor(null);
+          setCursorStack([]);
+        }
       }
     } catch (e: any) {
       setErrorTrabajos(e.message || "Error en la petición");
       setTrabajos([]);
+      setHasMore(false);
+      setNextCursor(null);
     } finally {
       setLoadingTrabajos(false);
     }
   };
 
+
   useEffect(() => {
     fetchTrabajos();
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [busqueda, modoGlobal]);
+
 
   const filtrados = trabajos.filter((t) => {
     const tipo =
@@ -83,18 +102,16 @@ function TrabajosPage() {
     return (t.titulo || "").toLowerCase().includes(q);
   });
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentTrabajos = trabajosFinal.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(trabajosFinal.length / itemsPerPage);
 
-  const nextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
 
-  const prevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
+  // Para "Anterior" guardamos los cursores usados (stack)
+  const [cursorStack, setCursorStack] = useState<string[]>([]);
+
+  // Para mostrar “página 1,2,3…” (solo visual)
+  const [page, setPage] = useState(1);
 
   const formatDateShort = (d: any) => {
     if (!d) return "-";
@@ -112,7 +129,7 @@ function TrabajosPage() {
       <Sidebar />
 
       <main className="flex-1 px-4 py-6 md:px-12 md:py-8 bg-white overflow-y-auto h-screen w-full">
-        
+
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-10 gap-4 mt-12 md:mt-0">
           <div>
             <h1 className="text-2xl md:text-3xl font-semibold text-gray-800">
@@ -193,7 +210,7 @@ function TrabajosPage() {
                 Cargando trabajos...
               </div>
             ) : trabajosFinal.length > 0 ? (
-              currentTrabajos.map((t, i) => (
+              trabajosFinal.map((t, i) => (
                 <div
                   key={i}
                   className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"
@@ -244,35 +261,54 @@ function TrabajosPage() {
           </div>
         </div>
 
-        {totalPages > 1 && (
-          <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
-            <button
-              onClick={prevPage}
-              disabled={currentPage === 1}
-              className={`px-3 py-1 rounded border ${
-                currentPage === 1 
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
-                  : "bg-white text-gray-700 hover:bg-gray-100"
+        <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
+          <button
+            onClick={() => {
+              // volvemos al cursor anterior
+              const prev = cursorStack[cursorStack.length - 1] ?? null;
+              const newStack = cursorStack.slice(0, -1);
+              setCursorStack(newStack);
+
+              setCursor(prev);
+              setPage((p) => Math.max(1, p - 1));
+
+              fetchTrabajos({ cursor: prev });
+            }}
+            disabled={page === 1 || loadingTrabajos}
+            className={`px-3 py-1 rounded border ${page === 1 || loadingTrabajos
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 hover:bg-gray-100"
               }`}
-            >
-              ← Anterior
-            </button>
-            <span className="px-3 py-1 rounded bg-[#27333d] text-white">
-              {currentPage} de {totalPages}
-            </span>
-            <button 
-              onClick={nextPage}
-              disabled={currentPage === totalPages}
-              className={`px-3 py-1 rounded border ${
-                currentPage === totalPages
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
-                  : "bg-white text-gray-700 hover:bg-gray-100"
+          >
+            ← Anterior
+          </button>
+
+          <span className="px-3 py-1 rounded bg-[#27333d] text-white">
+            Página {page}
+          </span>
+
+          <button
+            onClick={() => {
+              if (!nextCursor) return;
+
+              // guardamos el cursor actual para poder volver
+              setCursorStack((s) => [...s, cursor ?? ""]);
+
+              setCursor(nextCursor);
+              setPage((p) => p + 1);
+
+              fetchTrabajos({ cursor: nextCursor });
+            }}
+            disabled={!hasMore || loadingTrabajos}
+            className={`px-3 py-1 rounded border ${!hasMore || loadingTrabajos
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 hover:bg-gray-100"
               }`}
-            >
-              Siguiente →
-            </button>
-          </div>
-        )}
+          >
+            Siguiente →
+          </button>
+        </div>
+
 
         {modalDatos && (
           <ModalTrabajo

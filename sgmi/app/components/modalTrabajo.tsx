@@ -455,7 +455,11 @@ export default function ModalTrabajo({
         </div>
 
         {/* BOTÓN GUARDAR */}
-        {error && <div className="text-red-600 mt-4">{error}</div>}
+        {error && (
+          <div className="text-red-600 mt-4 mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            {typeof error === 'string' ? error : 'Error desconocido'}
+          </div>
+        )}
         <div className="flex justify-end mt-6">
           <button
             onClick={handleSave}

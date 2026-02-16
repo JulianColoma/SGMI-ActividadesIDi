@@ -6,7 +6,12 @@ import { getAuth } from '@/app/lib/requestAuth';
 
 export async function GET(request: NextRequest) {
   try {
-    const res = await TrabajoController.getAll();
+    const sp= request.nextUrl.searchParams;
+    const grupoId = sp.has('grupoId') ? Number(sp.get('grupoId')) : undefined;
+    const cursor = sp.get('cursor');
+
+
+    const res = await TrabajoController.getAll({grupoId, cursor});
     return NextResponse.json(res, { status: res.success ? 200 : 400 });
   } catch (e: any) { return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 }); }
 }
@@ -23,7 +28,12 @@ export async function POST(request: NextRequest) {
          );
       }
     const body = await request.json();
-    try { await createTrabajoSchema.parseAsync(body); } catch (err: any) { return NextResponse.json({ success: false, error: err.errors || err.message }, { status: 400 }); }
+    try { 
+      await createTrabajoSchema.parseAsync(body); 
+    } catch (err: any) { 
+      const errorMessage = err.errors ? err.errors.map((e: any) => e.message).join(', ') : err.message || 'Validación fallida';
+      return NextResponse.json({ success: false, error: errorMessage }, { status: 400 }); 
+    }
     const res = await TrabajoController.create(body);
     return NextResponse.json(res, { status: res.success ? 201 : res.error === 'No autorizado' ? 403 : 400 });
   } catch (e: any) { return NextResponse.json({ success: false, error: e.message }, { status: 500 }); }

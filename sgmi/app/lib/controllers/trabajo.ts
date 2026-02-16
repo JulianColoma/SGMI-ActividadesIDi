@@ -74,10 +74,10 @@ export class TrabajoController {
     }
   }
 
-  static async getAll(grupoId?: number) {
+  static async getAll(opst?:{grupoId?: number, cursor?: string | null}) {
     try {
-      const data = await TrabajoModel.findAll();
-      return { success: true, data };
+      const data = await TrabajoModel.findAllpaginado(opst);
+      return { success: true,items: data.items, nextCursor: data.nextCursor, hasMore: data.hasMore };
     } catch (e: any) {
       return { success: false, error: e.message };
     }
