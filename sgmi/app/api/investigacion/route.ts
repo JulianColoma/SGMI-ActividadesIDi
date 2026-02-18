@@ -5,7 +5,9 @@ import { getAuth } from '@/app/lib/requestAuth';
 
 export async function GET(request: NextRequest) {
   try {
-    const res = await InvestigacionController.getAll();
+    const sp= request.nextUrl.searchParams;
+    const cursor = sp.get('cursor');
+    const res = await InvestigacionController.getAll(cursor);
     return NextResponse.json(res, { status: res.success ? 200 : 400 });
   } catch (e: any) { return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 }); }
 }

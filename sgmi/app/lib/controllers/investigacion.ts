@@ -19,10 +19,15 @@ export class InvestigacionController {
     }
   }
 
-  static async getAll() {
+  static async getAll(cursor?: string | null) {
     try {
-      const data = await InvestigacionModel.findAll();
-      return { success: true, data };
+      const { data, pageInfo } = await InvestigacionModel.findAllPaginado(cursor);
+      return {
+        success: true,
+        items: data,
+        hasMore: pageInfo?.hasNextPage ?? false,
+        nextCursor: pageInfo?.nextCursor ?? null,
+      };
     } catch (e: any) {
       return { success: false, error: e.message };
     }

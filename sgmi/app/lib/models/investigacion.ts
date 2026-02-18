@@ -40,7 +40,74 @@ export class InvestigacionModel {
     return result.rows[0];
   }
 
-   static async findAll() {
+  static encodeCursor(c: { id: number }) {
+    return Buffer.from(JSON.stringify(c), "utf8").toString("base64url");
+  }
+
+  static decodeCursor(cursor: string): { id: number } | null {
+    try {
+      return JSON.parse(
+        Buffer.from(cursor, "base64url").toString("utf8")
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  static async findAllPaginado(cursor?: string | null) {
+    const LIMIT = 10;
+    const lastId = cursor ? this.decodeCursor(cursor) : null;
+
+    let q = `
+      SELECT i.*,
+             m.anio AS memoria_anio,
+             g.nombre AS grupo_nombre
+      FROM investigaciones i
+      JOIN memorias m ON i.memoria_id = m.id AND m.deleted_at IS NULL
+      JOIN grupos g ON m.grupo_id = g.id AND g.deleted_at IS NULL
+      WHERE i.deleted_at IS NULL
+    `;
+
+    const params: any[] = [];
+
+    if (lastId !== null) {
+      params.push(lastId.id);
+      q += ` AND i.id > $${params.length} `;
+    }
+
+    // Pedir LIMIT + 1 para saber si hay más registros
+    params.push(LIMIT + 1);
+
+    q += `
+      ORDER BY i.id ASC
+      LIMIT $${params.length}
+    `;
+
+    const result = await pool.query(q, params);
+    const rows = result.rows;
+
+    // Si obtuvimos más de LIMIT, hay más página
+    const hasMore = rows.length > LIMIT;
+    
+    // Devolver solo LIMIT registros
+    const dataRows = rows.slice(0, LIMIT);
+    
+    const nextCursor =
+      hasMore && dataRows.length > 0
+        ? this.encodeCursor({ id: dataRows[dataRows.length - 1].id })
+        : null;
+
+    return {
+      data: dataRows,
+      pageInfo: {
+        nextCursor,
+        hasNextPage: hasMore,
+      },
+    };
+  }
+
+
+  /* static async findAll() {
   
    let q = `
       SELECT i.*, 
@@ -54,7 +121,7 @@ export class InvestigacionModel {
     
     const result = await pool.query(q);
     return result.rows;
-  }
+  }*/
 
   static async findById(id: number): Promise<IInvestigacion | null> {
     const q = "SELECT * FROM investigaciones WHERE id = $1 AND deleted_at IS NULL";

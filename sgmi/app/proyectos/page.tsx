@@ -22,7 +22,7 @@ const INITIAL_FORM_STATE = {
   logros: "",
   fuente_financiamiento: "",
   dificultades: "",
-  memoria_id: 1, 
+  memoria_id: 1,
 };
 
 function ProyectosPage() {
@@ -39,7 +39,7 @@ function ProyectosPage() {
   const [busqueda, setBusqueda] = useState("");
   const [modalVer, setModalVer] = useState(false);
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState<any | null>(null);
-  
+
   const [editId, setEditId] = useState<number | null>(null);
 
   type Proyecto = {
@@ -49,54 +49,78 @@ function ProyectosPage() {
     tipo: string;
   };
 
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [cursorStack, setCursorStack] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
-  async function loadProyectos() {
-    setLoading(true);
-    setError(null);
+
+
+
+  const fetchProyectos = async (opts?: { cursor?: string | null; reset?: boolean }) => {
     try {
-      const res = await fetch("/api/investigacion", {
+      setError(null);
+      setLoading(true);
+
+      // 🔹 Si es reset, reiniciamos paginación visual
+      if (opts?.reset) {
+        setPage(1);
+        setCursor(null);
+        setCursorStack([]);
+      }
+
+      const params = new URLSearchParams();
+      if (opts?.cursor) {
+        params.set("cursor", opts.cursor);
+      }
+
+      const res = await fetch(`/api/investigacion?${params.toString()}`, {
+        method: "GET",
         credentials: "include",
       });
 
-      if (!res.ok) {
-        let body: any = null;
-        try { body = await res.json(); } catch { console.log('No JSON body'); }
-        throw new Error(body?.error || `Error HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.error || data.message || "Error al obtener proyectos");
+        setProyectos([]);
+        setHasMore(false);
+        setNextCursor(null);
+        return;
       }
 
-      const json = await res.json();
-      if (json.success) {
-        setProyectos(json.data);
-      } else {
-        setError(json.error || 'Respuesta inválida del servidor');
-      }
+      // 🔹 Backend devuelve: items, hasMore, nextCursor
+      setProyectos(Array.isArray(data.items) ? data.items : []);
+      setHasMore(!!data.hasMore);
+      setNextCursor(data.nextCursor ?? null);
+
     } catch (e: any) {
-      console.error('loadProyectos error', e);
-      setError(e?.message || 'Error desconocido');
+      setError(e?.message || "Error en la petición");
+      setProyectos([]);
+      setHasMore(false);
+      setNextCursor(null);
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+
 
   useEffect(() => {
-    loadProyectos();
+    fetchProyectos({ reset: true });
   }, []);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [busqueda]);
+
 
   function handleNewProyecto() {
-    setEditId(null); 
-    setFormData(INITIAL_FORM_STATE); 
-    setModalDatos(true); 
+    setEditId(null);
+    setFormData(INITIAL_FORM_STATE);
+    setModalDatos(true);
   }
 
   async function handleSave(dataFinal: Record<string, any>) {
@@ -105,12 +129,12 @@ function ProyectosPage() {
         await Toast.fire({ icon: 'warning', title: 'Completa los campos obligatorios', text: 'Tipo, nombre y fecha de inicio son requeridos.', timer: 1600 });
         return;
       }
-      
+
       const isEditing = !!editId;
 
       const res = await fetch(isEditing ? `/api/investigacion/${editId}` : '/api/investigacion', {
         method: isEditing ? 'PUT' : 'POST',
-        credentials: 'include', 
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataFinal),
       });
@@ -128,9 +152,9 @@ function ProyectosPage() {
       await Toast.fire({ icon: 'success', title: isEditing ? 'Proyecto actualizado con éxito' : 'Proyecto guardado con éxito' });
       setModalDetalles(false);
       setEditId(null);
-   
-      setFormData(INITIAL_FORM_STATE); 
-      loadProyectos(); 
+
+      setFormData(INITIAL_FORM_STATE);
+      await fetchProyectos({ reset: true });
     } catch (e) {
       await ModalSwal.fire({ icon: 'error', title: 'Error al conectar', text: 'No se pudo conectar con el servidor.' });
     }
@@ -145,7 +169,7 @@ function ProyectosPage() {
       if (!res.ok || !json.success) {
         alert(json.error || json.message || `No se pudo eliminar (code ${res.status})`);
       } else {
-        await loadProyectos();
+        await fetchProyectos({ reset: true });
       }
     } catch (e: any) {
       alert(e?.message || 'Error al eliminar');
@@ -180,18 +204,8 @@ function ProyectosPage() {
     (p.tipo || "").toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentProyectos = proyectosFiltrados.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(proyectosFiltrados.length / itemsPerPage);
 
-  const nextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
 
-  const prevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
 
   return (
     <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
@@ -203,7 +217,7 @@ function ProyectosPage() {
             Gestión de Proyectos de I+D+i
           </h1>
           <div className="self-end md:self-auto">
-             <UserPill />
+            <UserPill />
           </div>
         </div>
 
@@ -213,13 +227,14 @@ function ProyectosPage() {
             <input
               type="text"
               placeholder="Buscar proyecto"
+              value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="w-full bg-[#f3f4f6] border border-[#e5e7eb] rounded-full pl-9 pr-4 py-2 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00c9a7]"
             />
           </div>
 
           <button
-            onClick={handleNewProyecto} 
+            onClick={handleNewProyecto}
             className="w-full md:w-auto px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] shadow-sm hover:bg-[#00b197]"
           >
             + Añadir Proyecto
@@ -246,8 +261,7 @@ function ProyectosPage() {
             {!loading && !error && proyectos.length === 0 && (
               <div className="p-6 text-center text-sm text-gray-600">No hay proyectos registrados.</div>
             )}
-
-            {currentProyectos.map((p, i) => (
+            {proyectosFiltrados.map((p, i) => (
               <div
                 key={p.id}
                 className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
@@ -258,7 +272,9 @@ function ProyectosPage() {
                 <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
                   {p.codigo}
                 </div>
-                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">{p.tipo}</div>
+                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                  {p.tipo}
+                </div>
 
                 <div className="px-4 py-4 flex items-center gap-4">
                   <HiOutlineEye
@@ -280,38 +296,60 @@ function ProyectosPage() {
                 </div>
               </div>
             ))}
+
+
+
+
+
+
           </div>
         </div>
-        
-        {totalPages > 1 && (
-          <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
-            <button
-              onClick={prevPage}
-              disabled={currentPage === 1}
-              className={`px-3 py-1 rounded border ${
-                currentPage === 1 
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
-                  : "bg-white text-gray-700 hover:bg-gray-100"
+        <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
+          <button
+            onClick={() => {
+              const prev = cursorStack[cursorStack.length - 1] ?? null;
+              const newStack = cursorStack.slice(0, -1);
+              setCursorStack(newStack);
+
+              setCursor(prev);
+              setPage((p) => Math.max(1, p - 1));
+
+              fetchProyectos({ cursor: prev });
+            }}
+            disabled={page === 1 || loading}
+            className={`px-3 py-1 rounded border ${page === 1 || loading
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-white text-gray-700 hover:bg-gray-100"
               }`}
-            >
-              ← Anterior
-            </button>
-            <span className="px-3 py-1 rounded bg-[#27333d] text-white">
-              {currentPage} de {totalPages}
-            </span>
-            <button 
-              onClick={nextPage}
-              disabled={currentPage === totalPages}
-              className={`px-3 py-1 rounded border ${
-                currentPage === totalPages
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
-                  : "bg-white text-gray-700 hover:bg-gray-100"
+          >
+            ← Anterior
+          </button>
+
+          <span className="px-3 py-1 rounded bg-[#27333d] text-white">
+            Página {page}
+          </span>
+
+          <button
+            onClick={() => {
+              if (!nextCursor) return;
+
+              setCursorStack((s) => [...s, cursor ?? ""]);
+              setCursor(nextCursor);
+              setPage((p) => p + 1);
+
+              fetchProyectos({ cursor: nextCursor });
+            }}
+            disabled={!hasMore || loading}
+            className={`px-3 py-1 rounded border ${!hasMore || loading
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-white text-gray-700 hover:bg-gray-100"
               }`}
-            >
-              Siguiente →
-            </button>
-          </div>
-        )}
+          >
+            Siguiente →
+          </button>
+        </div>
+
+
       </main>
 
       {modalDatos && (
