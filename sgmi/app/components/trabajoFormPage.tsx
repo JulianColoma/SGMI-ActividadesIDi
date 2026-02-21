@@ -288,7 +288,7 @@ export default function TrabajoFormPage({
 
   return (
     <div className="min-h-screen flex bg-[#f3f4f6]">
-      <Sidebar />
+      <Sidebar locked />
       <main className="flex-1 px-4 py-4 md:px-8 lg:px-12 md:py-5 overflow-y-auto h-screen w-full">
         <div className="mb-3 flex items-center justify-end">
           <UserPill />

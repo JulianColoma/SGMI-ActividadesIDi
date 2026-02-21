@@ -1,53 +1,34 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { HiOutlineSearch, HiOutlineTrash, HiOutlineEye } from "react-icons/hi";
 import Sidebar from "../components/sidebar";
-import NewProyecto from "../components/newproyecto";
-import ModalProyectoDatos from "../components/modalProyectorsDatos";
 import ModalVerProyecto from "../components/modalVerProyecto";
 import UserPill from "../components/userPill";
 import { withAuth } from "../withAuth";
-import { useEffect, useState } from "react";
 import ErrorModal from "../components/alerts/ErrorModal";
 import ConfirmModal from "../components/alerts/ConfrimModal";
-import { Toast, ModalSwal } from '@/app/lib/swal';
 
-const INITIAL_FORM_STATE = {
-  tipo: "",
-  codigo: "",
-  nombre: "",
-  fecha_inicio: "",
-  fecha_fin: "",
-  descripcion: "",
-  logros: "",
-  fuente_financiamiento: "",
-  dificultades: "",
-  memoria_id: 1,
+type Proyecto = {
+  id: number;
+  nombre: string;
+  codigo: string;
+  tipo: string;
+  memoria_id?: number;
 };
 
 function ProyectosPage() {
-  const [modalDatos, setModalDatos] = useState(false);
-  const [modalDetalles, setModalDetalles] = useState(false);
-
-  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
-
+  const router = useRouter();
   const [showError, setShowError] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
   const [errorDesc, setErrorDesc] = useState("");
-
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [modalVer, setModalVer] = useState(false);
-  const [proyectoSeleccionado, setProyectoSeleccionado] = useState<any | null>(null);
-
-  const [editId, setEditId] = useState<number | null>(null);
-
-  type Proyecto = {
-    id: number;
-    nombre: string;
-    codigo: string;
-    tipo: string;
-  };
+  const [proyectoSeleccionado, setProyectoSeleccionado] = useState<Proyecto | null>(
+    null
+  );
 
   const [cursor, setCursor] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -58,16 +39,10 @@ function ProyectosPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-
-
-
-
   const fetchProyectos = async (opts?: { cursor?: string | null; reset?: boolean }) => {
     try {
       setError(null);
       setLoading(true);
-
-      // 🔹 Si es reset, reiniciamos paginación visual
       if (opts?.reset) {
         setPage(1);
         setCursor(null);
@@ -75,9 +50,7 @@ function ProyectosPage() {
       }
 
       const params = new URLSearchParams();
-      if (opts?.cursor) {
-        params.set("cursor", opts.cursor);
-      }
+      if (opts?.cursor) params.set("cursor", opts.cursor);
 
       const res = await fetch(`/api/investigacion?${params.toString()}`, {
         method: "GET",
@@ -85,7 +58,6 @@ function ProyectosPage() {
       });
 
       const data = await res.json();
-
       if (!res.ok || !data.success) {
         setError(data.error || data.message || "Error al obtener proyectos");
         setProyectos([]);
@@ -94,13 +66,12 @@ function ProyectosPage() {
         return;
       }
 
-      // 🔹 Backend devuelve: items, hasMore, nextCursor
       setProyectos(Array.isArray(data.items) ? data.items : []);
       setHasMore(!!data.hasMore);
       setNextCursor(data.nextCursor ?? null);
-
-    } catch (e: any) {
-      setError(e?.message || "Error en la petición");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Error en la peticion";
+      setError(message);
       setProyectos([]);
       setHasMore(false);
       setNextCursor(null);
@@ -109,93 +80,34 @@ function ProyectosPage() {
     }
   };
 
-
-
   useEffect(() => {
     fetchProyectos({ reset: true });
   }, []);
 
-
-
-  function handleNewProyecto() {
-    setEditId(null);
-    setFormData(INITIAL_FORM_STATE);
-    setModalDatos(true);
-  }
-
-  async function handleSave(dataFinal: Record<string, any>) {
-    try {
-      if (!dataFinal.tipo || !dataFinal.nombre || !dataFinal.fecha_inicio) {
-        await Toast.fire({ icon: 'warning', title: 'Completa los campos obligatorios', text: 'Tipo, nombre y fecha de inicio son requeridos.', timer: 1600 });
-        return;
-      }
-
-      const isEditing = !!editId;
-
-      const res = await fetch(isEditing ? `/api/investigacion/${editId}` : '/api/investigacion', {
-        method: isEditing ? 'PUT' : 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dataFinal),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        const msg = json?.error || `Error en servidor (${res.status})`;
-        setErrorTitle("Error al guardar proyecto");
-        setErrorDesc(msg);
-        setShowError(true);
-        return;
-      }
-
-      await Toast.fire({ icon: 'success', title: isEditing ? 'Proyecto actualizado con éxito' : 'Proyecto guardado con éxito' });
-      setModalDetalles(false);
-      setEditId(null);
-
-      setFormData(INITIAL_FORM_STATE);
-      await fetchProyectos({ reset: true });
-    } catch (e) {
-      await ModalSwal.fire({ icon: 'error', title: 'Error al conectar', text: 'No se pudo conectar con el servidor.' });
-    }
-  }
-
   async function handleDeleteConfirm() {
     if (!proyectoSeleccionado) return;
     try {
-      const id = proyectoSeleccionado.id;
-      const res = await fetch(`/api/investigacion/${id}`, { method: 'DELETE', credentials: 'include' });
+      const res = await fetch(`/api/investigacion/${proyectoSeleccionado.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        alert(json.error || json.message || `No se pudo eliminar (code ${res.status})`);
+        setErrorTitle("No se pudo eliminar");
+        setErrorDesc(json.error || json.message || "Intente nuevamente");
+        setShowError(true);
       } else {
         await fetchProyectos({ reset: true });
       }
-    } catch (e: any) {
-      alert(e?.message || 'Error al eliminar');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Error al eliminar";
+      setErrorTitle("Error al eliminar");
+      setErrorDesc(message);
+      setShowError(true);
     } finally {
       setShowConfirmDelete(false);
       setProyectoSeleccionado(null);
     }
-  }
-
-  function handleEdit(proyecto: any) {
-    setEditId(proyecto?.id ?? null);
-    setFormData({
-      tipo: proyecto?.tipo ?? "",
-      codigo: proyecto?.codigo ?? "",
-      nombre: proyecto?.nombre ?? "",
-      fecha_inicio: proyecto?.fecha_inicio ? new Date(proyecto.fecha_inicio).toISOString().slice(0, 10) : "",
-      fecha_fin: proyecto?.fecha_fin ? new Date(proyecto.fecha_fin).toISOString().slice(0, 10) : "",
-      descripcion: proyecto?.descripcion ?? "",
-      logros: proyecto?.logros ?? "",
-      fuente_financiamiento: proyecto?.fuente_financiamiento ?? "",
-      dificultades: proyecto?.dificultades ?? "",
-      memoria_id: proyecto?.memoria_id ?? 1,
-    });
-    setModalVer(false);
-    setShowConfirmDelete(false)
-    setModalDatos(true);
   }
 
   const proyectosFiltrados = proyectos.filter((p) =>
@@ -204,9 +116,6 @@ function ProyectosPage() {
     (p.tipo || "").toLowerCase().includes(busqueda.toLowerCase())
   );
 
-
-
-
   return (
     <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
       <Sidebar />
@@ -214,7 +123,7 @@ function ProyectosPage() {
       <main className="flex-1 px-4 py-6 md:px-12 md:py-8 bg-white overflow-y-auto h-screen w-full">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-10 gap-4 mt-12 md:mt-0">
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-800 whitespace-nowrap">
-            Gestión de Proyectos de I+D+i
+            Gestion de Proyectos de I+D+i
           </h1>
           <div className="self-end md:self-auto">
             <UserPill />
@@ -234,10 +143,10 @@ function ProyectosPage() {
           </div>
 
           <button
-            onClick={handleNewProyecto}
+            onClick={() => router.push("/proyectos/nuevo")}
             className="w-full md:w-auto px-5 py-2 rounded-md text-sm font-medium text-white bg-[#00c9a7] shadow-sm hover:bg-[#00b197]"
           >
-            + Añadir Proyecto
+            + Anadir Proyecto
           </button>
         </div>
 
@@ -245,7 +154,7 @@ function ProyectosPage() {
           <div className="min-w-[800px]">
             <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
               <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
-              <div className="px-4 py-3 border-r border-gray-300">Código</div>
+              <div className="px-4 py-3 border-r border-gray-300">Codigo</div>
               <div className="px-4 py-3 border-r border-gray-300">Tipo de Proyecto</div>
               <div className="px-4 py-3">Acciones</div>
             </div>
@@ -261,6 +170,7 @@ function ProyectosPage() {
             {!loading && !error && proyectos.length === 0 && (
               <div className="p-6 text-center text-sm text-gray-600">No hay proyectos registrados.</div>
             )}
+
             {proyectosFiltrados.map((p, i) => (
               <div
                 key={p.id}
@@ -296,100 +206,72 @@ function ProyectosPage() {
                 </div>
               </div>
             ))}
-
-
-
-
-
-
           </div>
         </div>
+
         <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
           <button
             onClick={() => {
               const prev = cursorStack[cursorStack.length - 1] ?? null;
               const newStack = cursorStack.slice(0, -1);
               setCursorStack(newStack);
-
               setCursor(prev);
               setPage((p) => Math.max(1, p - 1));
-
               fetchProyectos({ cursor: prev });
             }}
             disabled={page === 1 || loading}
-            className={`px-3 py-1 rounded border ${page === 1 || loading
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-              : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+            className={`px-3 py-1 rounded border ${
+              page === 1 || loading
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            }`}
           >
-            ← Anterior
+            Anterior
           </button>
 
           <span className="px-3 py-1 rounded bg-[#27333d] text-white">
-            Página {page}
+            Pagina {page}
           </span>
 
           <button
             onClick={() => {
               if (!nextCursor) return;
-
               setCursorStack((s) => [...s, cursor ?? ""]);
               setCursor(nextCursor);
               setPage((p) => p + 1);
-
               fetchProyectos({ cursor: nextCursor });
             }}
             disabled={!hasMore || loading}
-            className={`px-3 py-1 rounded border ${!hasMore || loading
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-              : "bg-white text-gray-700 hover:bg-gray-100"
-              }`}
+            className={`px-3 py-1 rounded border ${
+              !hasMore || loading
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            }`}
           >
-            Siguiente →
+            Siguiente
           </button>
         </div>
-
-
       </main>
-
-      {modalDatos && (
-        <ModalProyectoDatos
-          open={modalDatos}
-          onClose={() => setModalDatos(false)}
-          onNext={(data) => {
-            setFormData({ ...formData, ...data });
-            setModalDatos(false);
-            setModalDetalles(true);
-          }}
-          initialData={formData}
-        />
-      )}
-
-      {modalDetalles && (
-        <NewProyecto
-          open={modalDetalles}
-          onClose={() => setModalDetalles(false)}
-          onBack={() => {
-            setModalDetalles(false);
-            setModalDatos(true);
-          }}
-          onSave={(data) => handleSave({ ...formData, ...data })}
-          initialData={formData}
-        />
-      )}
 
       <ModalVerProyecto
         open={modalVer}
         proyecto={proyectoSeleccionado}
-        onClose={() => { setModalVer(false); setProyectoSeleccionado(null); }}
-        onEdit={(p: any) => handleEdit(p)}
+        onClose={() => {
+          setModalVer(false);
+          setProyectoSeleccionado(null);
+        }}
+        onEdit={(p: Proyecto) => {
+          setModalVer(false);
+          setProyectoSeleccionado(null);
+          router.push(`/proyectos/editar/${p.id}`);
+        }}
       />
 
       <ConfirmModal
         open={showConfirmDelete}
         onClose={() => setShowConfirmDelete(false)}
         onConfirm={handleDeleteConfirm}
-        message={`¿Está seguro de eliminar el proyecto "${proyectoSeleccionado?.nombre ?? ""}"?`}
+        message={`Esta seguro de eliminar el proyecto "${proyectoSeleccionado?.nombre ?? ""}"?`}
       />
       <ErrorModal
         open={showError}
@@ -397,9 +279,9 @@ function ProyectosPage() {
         title={errorTitle}
         description={errorDesc}
       />
-
     </div>
   );
 }
 
 export default withAuth(ProyectosPage);
+

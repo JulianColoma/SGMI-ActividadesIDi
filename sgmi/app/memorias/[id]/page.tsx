@@ -1,7 +1,7 @@
 "use client";
 
 import Sidebar from "@/app/components/sidebar";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 
 import {
@@ -10,11 +10,8 @@ import {
     HiOutlineTrash,
 } from "react-icons/hi";
 
-import ModalProyectoDatos from "@/app/components/modalProyectorsDatos";
-import NewProyecto from "@/app/components/newproyecto";
 import ModalVerTrabajo from "@/app/components/modalVerTrabajo";
 import ModalVerProyecto from "@/app/components/modalVerProyecto";
-import Toast from 'sweetalert2';
 import UserPill from "@/app/components/userPill";
 import { withAuth } from "@/app/withAuth";
 import ConfirmModal from "@/app/components/alerts/ConfrimModal";
@@ -23,6 +20,7 @@ import ErrorModal from "@/app/components/alerts/ErrorModal";
 function MemoriaDetallePage() {
     const { id } = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     // DATOS DE LA API
     const [memoria, setMemoria] = useState<any>(null);
@@ -37,10 +35,6 @@ function MemoriaDetallePage() {
     const [busquedaProyecto, setBusquedaProyecto] = useState("");
     const [busquedaTrabajo, setBusquedaTrabajo] = useState("");
     const [modoGlobal, setModoGlobal] = useState(false); // false = nacional, true = internacional
-
-    // MODALES - ESTADOS DE CONTROL
-    const [modalProyectoDatos, setModalProyectoDatos] = useState(false);
-    const [modalProyectoDetalles, setModalProyectoDetalles] = useState(false);
 
     //MODALES - ALERTAS
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -59,8 +53,6 @@ function MemoriaDetallePage() {
 
 
     // DATOS PARA EDICIÓN
-    const [editProyectoData, setEditProyectoData] = useState<any>(null); // Datos completos del proyecto a editar
-    const [proyectoDataTemp, setProyectoDataTemp] = useState<any>({});   // Datos temporales entre paso 1 y 2 de proyecto
 
     // MODALES - VISUALIZACIÓN
     const [verTrabajo, setVerTrabajo] = useState<any | null>(null);
@@ -91,6 +83,13 @@ function MemoriaDetallePage() {
     useEffect(() => {
         fetchMemoria();
     }, [id]);
+
+    useEffect(() => {
+        const tabParam = searchParams.get("tab");
+        if (tabParam === "trabajos" || tabParam === "proyectos") {
+            setTab(tabParam);
+        }
+    }, [searchParams]);
 
     // --- MANEJADORES DE TRABAJOS ---
 
@@ -143,20 +142,25 @@ function MemoriaDetallePage() {
 
     // --- MANEJADORES DE PROYECTOS---
 
-    // Abrir modal para crear proyecto
+    // Ir a page para crear proyecto
     const handleOpenCreateProyecto = () => {
-        setEditProyectoData(null);
-        setProyectoDataTemp({});
-        setModalProyectoDatos(true);
+        const memoriaId = Number(id);
+        if (!Number.isFinite(memoriaId)) return;
+        const returnTo = encodeURIComponent(`/memorias/${memoriaId}?tab=proyectos`);
+        router.push(
+            `/proyectos/nuevo?memoriaId=${memoriaId}&lockMemoria=1&returnTo=${returnTo}`
+        );
     };
 
-    // Abrir modal para editar proyecto
+    // Ir a page para editar proyecto
     const handleEditProyecto = (proyecto: any) => {
         setVerProyecto(null);
-        setEditProyectoData(proyecto);
-        // Pre-llenamos los datos temporales con lo que ya tiene el proyecto
-        setProyectoDataTemp(proyecto);
-        setModalProyectoDatos(true); 
+        const memoriaId = Number(id);
+        if (!proyecto?.id || !Number.isFinite(memoriaId)) return;
+        const returnTo = encodeURIComponent(`/memorias/${memoriaId}?tab=proyectos`);
+        router.push(
+            `/proyectos/editar/${proyecto.id}?memoriaId=${memoriaId}&lockMemoria=1&returnTo=${returnTo}`
+        );
     };
 
     // Eliminar proyecto
@@ -183,61 +187,6 @@ function MemoriaDetallePage() {
         setConfirmOpen(true);
     };
 
-    // Paso 1 -> Paso 2 (Guardar datos parciales y avanzar)
-    const handleNextProyecto = (dataPaso1: any) => {
-        // dataPaso1 trae { nombre, codigo, tipo, fecha_inicio, fecha_fin, descripcion } del ModalProyectoDatos
-            setProyectoDataTemp({ 
-            ...proyectoDataTemp, 
-            ...dataPaso1,
-            memoria_id: Number(id)
-        });
-        setModalProyectoDatos(false);
-        setModalProyectoDetalles(true); // Abrir Paso 2
-    };
-
-    // Paso 2 -> Guardar Final (Hacer el POST o PUT)
-    const handleFinalSaveProyecto = async (dataPaso2: any) => {
-        try {
-            const payload = {
-                ...proyectoDataTemp,
-                ...dataPaso2,
-                memoria_id: Number(id),
-            };
-
-            const isEdit = !!editProyectoData?.id;
-            const url = isEdit
-                ? `/api/investigacion/${editProyectoData.id}`
-                : "/api/investigacion";
-            const method = isEdit ? "PUT" : "POST";
-
-            const res = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await res.json();
-
-            if (!data.success) {
-                showError("Error al guardar", data.error || "No se pudo guardar el proyecto");
-                return;
-            }
-
-            // Mostrar alerta de éxito
-            try {
-                await Toast.fire({ icon: 'success', title: isEdit ? 'Proyecto actualizado con éxito' : 'Proyecto creado con éxito' });
-            } catch (e) {
-                // ignore
-            }
-
-            fetchMemoria();
-            setModalProyectoDetalles(false);
-            setEditProyectoData(null);
-            setProyectoDataTemp({});
-        } catch {
-            showError("Error de conexión", "No se pudo contactar al servidor.");
-        }
-    };
 
     // --- FILTRADO ---
     const trabajosFiltrados = trabajos.filter((t) => {
@@ -478,30 +427,6 @@ function MemoriaDetallePage() {
             {/* --- MODALES CREACIÓN / EDICIÓN --- */}
            
 
-            {/* Paso 1 Proyecto: Datos Generales */}
-            {modalProyectoDatos && (
-                <ModalProyectoDatos
-                    open={modalProyectoDatos}
-                    initialData={editProyectoData || {}} // Si hay edición, precarga datos
-                    onClose={() => setModalProyectoDatos(false)}
-                    onNext={(dataPaso1: any) => handleNextProyecto(dataPaso1)}
-                />
-            )}
-
-            {/* Paso 2 Proyecto: Detalles */}
-            {modalProyectoDetalles && (
-                <NewProyecto
-                    open={modalProyectoDetalles}
-                    initialData={{ ...editProyectoData, memoria_id: Number(id) }} // Precarga detalles si editas
-                    onClose={() => setModalProyectoDetalles(false)}
-                    onBack={() => {
-                        setModalProyectoDetalles(false);
-                        setModalProyectoDatos(true);
-                    }}
-                    onSave={handleFinalSaveProyecto}
-                    lockMemoria={true} 
-                />
-            )}
 
             {/* --- MODALES VISUALIZACIÓN --- */}
 
@@ -543,3 +468,5 @@ function MemoriaDetallePage() {
 }
 
 export default withAuth(MemoriaDetallePage);
+
+
