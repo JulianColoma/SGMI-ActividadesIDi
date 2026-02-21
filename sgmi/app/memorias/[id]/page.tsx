@@ -1,7 +1,7 @@
 "use client";
 
 import Sidebar from "@/app/components/sidebar";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 import {
@@ -10,7 +10,6 @@ import {
     HiOutlineTrash,
 } from "react-icons/hi";
 
-import ModalTrabajo from "@/app/components/modalTrabajo";
 import ModalProyectoDatos from "@/app/components/modalProyectorsDatos";
 import NewProyecto from "@/app/components/newproyecto";
 import ModalVerTrabajo from "@/app/components/modalVerTrabajo";
@@ -23,6 +22,7 @@ import ErrorModal from "@/app/components/alerts/ErrorModal";
 
 function MemoriaDetallePage() {
     const { id } = useParams();
+    const router = useRouter();
 
     // DATOS DE LA API
     const [memoria, setMemoria] = useState<any>(null);
@@ -39,7 +39,6 @@ function MemoriaDetallePage() {
     const [modoGlobal, setModoGlobal] = useState(false); // false = nacional, true = internacional
 
     // MODALES - ESTADOS DE CONTROL
-    const [openTrabajo, setOpenTrabajo] = useState(false);
     const [modalProyectoDatos, setModalProyectoDatos] = useState(false);
     const [modalProyectoDetalles, setModalProyectoDetalles] = useState(false);
 
@@ -60,7 +59,6 @@ function MemoriaDetallePage() {
 
 
     // DATOS PARA EDICIÓN
-    const [editTrabajoData, setEditTrabajoData] = useState<any>(null); // Datos para editar trabajo
     const [editProyectoData, setEditProyectoData] = useState<any>(null); // Datos completos del proyecto a editar
     const [proyectoDataTemp, setProyectoDataTemp] = useState<any>({});   // Datos temporales entre paso 1 y 2 de proyecto
 
@@ -98,15 +96,24 @@ function MemoriaDetallePage() {
 
     // Abrir modal para crear
     const handleOpenCreateTrabajo = () => {
-        setEditTrabajoData(null); // Limpiamos edición
-        setOpenTrabajo(true);
+        const memoriaId = Number(id);
+        if (!Number.isFinite(memoriaId)) return;
+        const modo = modoGlobal ? "internacional" : "nacional";
+        const returnTo = encodeURIComponent(`/memorias/${memoriaId}?tab=trabajos`);
+        router.push(
+            `/trabajos/nuevo?memoriaId=${memoriaId}&lockMemoria=1&modo=${modo}&returnTo=${returnTo}`
+        );
     };
 
     // Abrir modal para editar
     const handleEditTrabajo = (trabajo: any) => {
         setVerTrabajo(null); // Cerramos visualización si estaba abierta
-        setEditTrabajoData(trabajo);
-        setOpenTrabajo(true);
+        const memoriaId = Number(id);
+        if (!trabajo?.id || !Number.isFinite(memoriaId)) return;
+        const returnTo = encodeURIComponent(`/memorias/${memoriaId}?tab=trabajos`);
+        router.push(
+            `/trabajos/editar/${trabajo.id}?memoriaId=${memoriaId}&lockMemoria=1&returnTo=${returnTo}`
+        );
     };
 
     // Eliminar trabajo
@@ -132,13 +139,7 @@ function MemoriaDetallePage() {
     };
 
     // Callback al guardar (El modal hace el fetch, aquí solo refrescamos)
-    const handleSaveTrabajo = async (res: any) => {
-        if (res.success) {
-            await fetchMemoria();
-            setOpenTrabajo(false);
-            setEditTrabajoData(null);
-        }
-    };
+    
 
     // --- MANEJADORES DE PROYECTOS---
 
@@ -476,18 +477,6 @@ function MemoriaDetallePage() {
 
             {/* --- MODALES CREACIÓN / EDICIÓN --- */}
            
-
-            {openTrabajo && (
-                <ModalTrabajo
-                    open={openTrabajo}
-                    lockMemoria={true}
-                    modoInicial={modoGlobal ? "internacional" : "nacional"}
-                    initialData={editTrabajoData || { memoria_id: Number(id) }}
-                    editId={editTrabajoData?.id}
-                    onClose={() => setOpenTrabajo(false)}
-                    onSave={handleSaveTrabajo}
-                />
-            )}
 
             {/* Paso 1 Proyecto: Datos Generales */}
             {modalProyectoDatos && (
