@@ -33,8 +33,21 @@ export class GrupoController {
   /**
    * Obtener todos los grupos (todos los roles pueden ver)
    */
-  static async getAll(): Promise<ApiResponse<IGrupo[]>> {
+  static async getAll(opts?: {
+    cursor?: string | null;
+    q?: string;
+    paginado?: boolean;
+  }): Promise<ApiResponse<any>> {
     try {
+      if (opts?.paginado || opts?.cursor || opts?.q?.trim()) {
+        const page = await GrupoModel.findAllPaginado(opts);
+        return {
+          success: true,
+          items: page.items,
+          hasMore: page.hasMore,
+          nextCursor: page.nextCursor,
+        };
+      }
       const grupos = await GrupoModel.findAll();
       return { success: true, data: grupos };
     } catch (error: any) {

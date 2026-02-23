@@ -8,6 +8,14 @@ export interface IGrupo {
 }
 
 export class GrupoModel {
+  static encodeCursor(c: { id: number }) {
+    return Buffer.from(JSON.stringify(c), "utf8").toString("base64url");
+  }
+
+  static decodeCursor(cursor: string): { id: number } {
+    return JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+  }
+
   /**
    * Crear un nuevo grupo
    */
@@ -56,6 +64,43 @@ export class GrupoModel {
 
     const result = await pool.query(query);
     return result.rows;
+  }
+
+  static async findAllPaginado(opts?: { cursor?: string | null; q?: string }) {
+    const pageSize = 3;
+    const take = pageSize + 1;
+    const cursor = opts?.cursor ?? null;
+    const params: any[] = [];
+    let idx = 1;
+
+    let query = `
+      SELECT g.id, g.nombre
+      FROM grupos g
+      WHERE g.deleted_at IS NULL
+    `;
+
+    if (opts?.q?.trim()) {
+      query += ` AND unaccent(lower(g.nombre)) LIKE unaccent(lower($${idx++}))`;
+      params.push(`%${opts.q.trim()}%`);
+    }
+
+    if (cursor) {
+      const c = this.decodeCursor(cursor);
+      query += ` AND g.id > $${idx++}`;
+      params.push(c.id);
+    }
+
+    query += ` ORDER BY g.id ASC LIMIT $${idx}`;
+    params.push(take);
+
+    const r = await pool.query(query, params);
+    const rows = r.rows;
+    const hasMore = rows.length > pageSize;
+    const items = hasMore ? rows.slice(0, pageSize) : rows;
+    const nextCursor =
+      items.length > 0 ? this.encodeCursor({ id: items[items.length - 1].id }) : null;
+
+    return { items, hasMore, nextCursor };
   }
 
   /**

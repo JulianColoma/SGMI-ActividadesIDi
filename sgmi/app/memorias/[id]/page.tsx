@@ -376,7 +376,7 @@ function MemoriaDetallePage() {
               </div>
             </div>
 
-            <div className="border border-gray-300 rounded-lg overflow-hidden overflow-x-auto">
+            <div className="hidden md:block border border-gray-300 rounded-lg overflow-hidden overflow-x-auto">
               <div className="min-w-[900px]">
                 <div className="grid grid-cols-5 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
                   <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
@@ -394,14 +394,21 @@ function MemoriaDetallePage() {
                       key={t.id || i}
                       className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
                     >
-                      <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">{t.titulo}</div>
-                      <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">
+                      <div className="px-4 py-4 border-r border-gray-300 text-sm truncate min-w-0" title={t.titulo}>
+                        {t.titulo}
+                      </div>
+                      <div
+                        className="px-4 py-4 border-r border-gray-300 text-sm truncate min-w-0"
+                        title={modoGlobal ? t.pais : t.ciudad}
+                      >
                         {modoGlobal ? t.pais : t.ciudad}
                       </div>
                       <div className="px-4 py-4 border-r border-gray-300 text-sm">
                         {formatDate(t.fecha_presentacion)}
                       </div>
-                      <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">{t.reunion}</div>
+                      <div className="px-4 py-4 border-r border-gray-300 text-sm truncate min-w-0" title={t.reunion}>
+                        {t.reunion}
+                      </div>
                       <div className="px-4 py-4 flex justify-center gap-5">
                         <HiOutlineEye
                           className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
@@ -420,6 +427,60 @@ function MemoriaDetallePage() {
                   <div className="p-6 text-center text-gray-500">No se encontraron trabajos.</div>
                 )}
               </div>
+            </div>
+
+            <div className="md:hidden space-y-3">
+              {loadingTrabajos ? (
+                <div className="p-6 text-center text-gray-500">Cargando trabajos...</div>
+              ) : trabajosFiltrados.length > 0 ? (
+                trabajosFiltrados.map((t, i) => (
+                  <div
+                    key={t.id || i}
+                    className="rounded-xl border border-[#d6d9dd] bg-white shadow-sm overflow-hidden"
+                  >
+                    <div className="px-4 py-3 bg-[#f3f4f6] border-b border-[#e5e7eb]">
+                      <p className="text-sm font-semibold text-gray-800 truncate" title={t.titulo}>
+                        {t.titulo || "-"}
+                      </p>
+                    </div>
+                    <div className="px-4 py-3 space-y-2 text-sm text-gray-700">
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">{modoGlobal ? "Pais" : "Ciudad"}</span>
+                        <span
+                          className="font-medium text-right truncate max-w-[60%]"
+                          title={modoGlobal ? t.pais : t.ciudad}
+                        >
+                          {modoGlobal ? t.pais || "-" : t.ciudad || "-"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">Fecha</span>
+                        <span className="font-medium">{formatDate(t.fecha_presentacion)}</span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">Reunion</span>
+                        <span className="font-medium text-right truncate max-w-[60%]" title={t.reunion}>
+                          {t.reunion || "-"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 bg-[#fafafa] border-t border-[#e5e7eb] flex justify-end gap-4">
+                      <HiOutlineEye
+                        className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
+                        onClick={() => setVerTrabajo(t)}
+                        title="Ver detalle"
+                      />
+                      <HiOutlineTrash
+                        className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
+                        onClick={() => handleDeleteTrabajo(t.id)}
+                        title="Eliminar trabajo"
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-gray-500">No se encontraron trabajos.</div>
+              )}
             </div>
 
             <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
@@ -486,7 +547,7 @@ function MemoriaDetallePage() {
               </button>
             </div>
 
-            <div className="border border-gray-300 rounded-lg overflow-hidden overflow-x-auto">
+            <div className="hidden md:block border border-gray-300 rounded-lg overflow-hidden overflow-x-auto">
               <div className="min-w-[700px]">
                 <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
                   <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
@@ -503,9 +564,15 @@ function MemoriaDetallePage() {
                       key={p.id || i}
                       className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
                     >
-                      <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">{p.nombre}</div>
-                      <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">{p.codigo}</div>
-                      <div className="px-4 py-4 border-r border-gray-300 text-sm break-words">{p.tipo}</div>
+                      <div className="px-4 py-4 border-r border-gray-300 text-sm truncate min-w-0" title={p.nombre}>
+                        {p.nombre}
+                      </div>
+                      <div className="px-4 py-4 border-r border-gray-300 text-sm truncate min-w-0" title={p.codigo}>
+                        {p.codigo}
+                      </div>
+                      <div className="px-4 py-4 border-r border-gray-300 text-sm truncate min-w-0" title={p.tipo}>
+                        {p.tipo}
+                      </div>
                       <div className="px-4 py-4 flex justify-center gap-5">
                         <HiOutlineEye
                           className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
@@ -524,6 +591,53 @@ function MemoriaDetallePage() {
                   <div className="p-6 text-center text-gray-500">No se encontraron proyectos.</div>
                 )}
               </div>
+            </div>
+
+            <div className="md:hidden space-y-3">
+              {loadingProyectos ? (
+                <div className="p-6 text-center text-gray-500">Cargando proyectos...</div>
+              ) : proyectosFiltrados.length > 0 ? (
+                proyectosFiltrados.map((p, i) => (
+                  <div
+                    key={p.id || i}
+                    className="rounded-xl border border-[#d6d9dd] bg-white shadow-sm overflow-hidden"
+                  >
+                    <div className="px-4 py-3 bg-[#f3f4f6] border-b border-[#e5e7eb]">
+                      <p className="text-sm font-semibold text-gray-800 truncate" title={p.nombre}>
+                        {p.nombre || "-"}
+                      </p>
+                    </div>
+                    <div className="px-4 py-3 space-y-2 text-sm text-gray-700">
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">Codigo</span>
+                        <span className="font-medium text-right truncate max-w-[60%]" title={p.codigo}>
+                          {p.codigo || "-"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-gray-500">Tipo</span>
+                        <span className="font-medium text-right truncate max-w-[60%]" title={p.tipo}>
+                          {p.tipo || "-"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 bg-[#fafafa] border-t border-[#e5e7eb] flex justify-end gap-4">
+                      <HiOutlineEye
+                        className="w-5 h-5 text-[#00c9a7] cursor-pointer hover:scale-110"
+                        onClick={() => setVerProyecto(p)}
+                        title="Ver detalle"
+                      />
+                      <HiOutlineTrash
+                        className="w-5 h-5 text-red-500 cursor-pointer hover:scale-110"
+                        onClick={() => handleDeleteProyecto(p.id)}
+                        title="Eliminar proyecto"
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center text-gray-500">No se encontraron proyectos.</div>
+              )}
             </div>
 
             <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">

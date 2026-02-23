@@ -9,6 +9,13 @@ export interface IMemoria {
 }
 
 export class MemoriaModel {
+  static encodeCursor(c: { id: number }) {
+    return Buffer.from(JSON.stringify(c), "utf8").toString("base64url");
+  }
+
+  static decodeCursor(cursor: string): { id: number; anio?: number } {
+    return JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+  }
   
   /**
    * Crear memoria (SOLO si el grupo existe y está activo)
@@ -92,6 +99,51 @@ export class MemoriaModel {
       proyectos: proyectosRes.rows, 
       trabajos: trabajosRes.rows    
     };
+  }
+
+  static async findAllPaginadoByGrupo(opts: { grupoId: number; cursor?: string | null }) {
+    const pageSize = 3;
+    const take = pageSize + 1;
+    const cursor = opts.cursor ?? null;
+    const params: any[] = [opts.grupoId];
+    let idx = 2;
+
+    let q = `
+      SELECT id, anio, grupo_id, contenido
+      FROM memorias
+      WHERE deleted_at IS NULL
+      AND grupo_id = $1
+    `;
+
+    if (cursor) {
+      const c = this.decodeCursor(cursor);
+      if (typeof c?.anio === "number" && typeof c?.id === "number") {
+        q += ` AND (anio < $${idx} OR (anio = $${idx} AND id < $${idx + 1}))`;
+        params.push(c.anio, c.id);
+        idx += 2;
+      } else if (typeof c?.id === "number") {
+        // Compatibilidad con cursores viejos (solo id)
+        q += ` AND id < $${idx++}`;
+        params.push(c.id);
+      }
+    }
+
+    q += ` ORDER BY anio DESC, id DESC LIMIT $${idx}`;
+    params.push(take);
+
+    const r = await pool.query(q, params);
+    const rows = r.rows;
+    const hasMore = rows.length > pageSize;
+    const items = hasMore ? rows.slice(0, pageSize) : rows;
+    const nextCursor =
+      items.length > 0
+        ? this.encodeCursor({
+            anio: items[items.length - 1].anio,
+            id: items[items.length - 1].id,
+          })
+        : null;
+
+    return { items, hasMore, nextCursor };
   }
   
   // transaccion para borrar una memoria y sus hijos (investigaciones y trabajos)

@@ -28,6 +28,20 @@ export class MemoriaController {
     }
   }
 
+  static async getAllByGrupo(opts: { grupoId: number; cursor?: string | null }) {
+    try {
+      const data = await MemoriaModel.findAllPaginadoByGrupo(opts);
+      return {
+        success: true,
+        items: data.items,
+        hasMore: data.hasMore,
+        nextCursor: data.nextCursor,
+      };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  }
+
   static async delete(id: number) {
     try {
       const ok = await MemoriaModel.delete(id);

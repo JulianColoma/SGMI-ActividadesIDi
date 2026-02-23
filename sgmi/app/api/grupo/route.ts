@@ -9,7 +9,11 @@ import { getAuth } from '@/app/lib/requestAuth';
  */
 export async function GET(request: NextRequest) {
   try {
-    const response = await GrupoController.getAll();
+    const sp = request.nextUrl.searchParams;
+    const cursor = sp.get("cursor");
+    const q = sp.get("q") ?? undefined;
+    const paginado = sp.get("paginado") === "1";
+    const response = await GrupoController.getAll({ cursor, q, paginado });
 
     return NextResponse.json(response, { status: response.success ? 200 : 400 });
   } catch (error: any) {

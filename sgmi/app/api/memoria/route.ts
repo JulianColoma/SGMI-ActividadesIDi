@@ -4,6 +4,26 @@ import { createMemoriaSchema } from '@/app/lib/schemas/memoria';
 import { getAuth } from '@/app/lib/requestAuth';
 
 
+export async function GET(request: NextRequest) {
+  try {
+    const sp = request.nextUrl.searchParams;
+    const grupoId = Number(sp.get("grupoId"));
+    const cursor = sp.get("cursor");
+
+    if (!Number.isFinite(grupoId) || grupoId <= 0) {
+      return NextResponse.json(
+        { success: false, error: "grupoId invalido" },
+        { status: 400 }
+      );
+    }
+
+    const res = await MemoriaController.getAllByGrupo({ grupoId, cursor });
+    return NextResponse.json(res, { status: res.success ? 200 : 400 });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+}
+
 
 export async function POST(request: NextRequest) {
   try {

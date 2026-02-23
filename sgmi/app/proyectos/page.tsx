@@ -150,7 +150,7 @@ function ProyectosPage() {
           </button>
         </div>
 
-        <div className="border border-gray-300 rounded-lg overflow-hidden w-full overflow-x-auto">
+        <div className="hidden md:block border border-gray-300 rounded-lg overflow-hidden w-full overflow-x-auto">
           <div className="min-w-[800px]">
             <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
               <div className="px-4 py-3 border-r border-gray-300">Nombre del Proyecto</div>
@@ -176,13 +176,13 @@ function ProyectosPage() {
                 key={p.id}
                 className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
               >
-                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 truncate" title={p.nombre}>
                   {p.nombre}
                 </div>
-                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 truncate" title={p.codigo}>
                   {p.codigo}
                 </div>
-                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                <div className="px-4 py-4 border-r border-gray-300 text-gray-700 truncate" title={p.tipo}>
                   {p.tipo}
                 </div>
 
@@ -207,6 +207,65 @@ function ProyectosPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="md:hidden space-y-3">
+          {loading && (
+            <div className="p-6 text-center text-sm text-gray-600">Cargando proyectos...</div>
+          )}
+
+          {error && !loading && (
+            <div className="p-6 text-center text-sm text-red-600">Error: {error}</div>
+          )}
+
+          {!loading && !error && proyectosFiltrados.length === 0 && (
+            <div className="p-6 text-center text-sm text-gray-600">No hay proyectos registrados.</div>
+          )}
+
+          {!loading && !error && proyectosFiltrados.map((p) => (
+            <div
+              key={p.id}
+              className="rounded-xl border border-[#d6d9dd] bg-white shadow-sm overflow-hidden"
+            >
+              <div className="px-4 py-3 bg-[#f3f4f6] border-b border-[#e5e7eb]">
+                <p className="text-sm font-semibold text-gray-800 truncate" title={p.nombre}>
+                  {p.nombre}
+                </p>
+              </div>
+              <div className="px-4 py-3 space-y-2 text-sm text-gray-700">
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500">Codigo</span>
+                  <span className="font-medium text-right truncate max-w-[60%]" title={p.codigo}>
+                    {p.codigo}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-gray-500">Tipo</span>
+                  <span className="font-medium text-right truncate max-w-[60%]" title={p.tipo}>
+                    {p.tipo}
+                  </span>
+                </div>
+              </div>
+              <div className="px-4 py-3 bg-[#fafafa] border-t border-[#e5e7eb] flex justify-end gap-4">
+                <HiOutlineEye
+                  title="Ver"
+                  onClick={() => {
+                    setProyectoSeleccionado(p);
+                    setModalVer(true);
+                  }}
+                  className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
+                />
+                <HiOutlineTrash
+                  title="Eliminar"
+                  onClick={() => {
+                    setProyectoSeleccionado(p);
+                    setShowConfirmDelete(true);
+                  }}
+                  className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
+                />
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">

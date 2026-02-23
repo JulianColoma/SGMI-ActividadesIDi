@@ -16,6 +16,7 @@ $$;
 -----------------------------------------------------------------
 -- SCHEMA CREATION
 -----------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS unaccent;
 
 -- Usuarios
 CREATE TABLE IF NOT EXISTS usuarios (

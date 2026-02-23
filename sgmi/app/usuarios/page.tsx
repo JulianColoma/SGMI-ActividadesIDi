@@ -21,6 +21,13 @@ interface Usuario {
   role: string;
 }
 
+interface NuevoUsuarioData {
+  nombre: string;
+  email: string;
+  password: string;
+  role: string;
+}
+
 function UsuariosPage() {
 
   const [buscar, setBuscar] = useState("");
@@ -37,24 +44,37 @@ function UsuariosPage() {
 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<Usuario | null>(null);
 
+  const usuariosFiltrados = usuarios.filter((u) =>
+    u.nombre.toLowerCase().includes(buscar.toLowerCase())
+  );
+
   const fetchData = async () => {
     try {
+      setIsLoading(true);
       const res = await fetch('/api/usuario', { credentials: 'include' });
 
       const data = await res.json();
 
-      if (Array.isArray(data)) {
-        setUsuarios(data);
-      } else if (data && Array.isArray(data.data)) {
-        setUsuarios(data.data);
-      } else {
-        console.error("La API no devolvió un array válido:", data);
-        setUsuarios([]);
+      const lista =
+        (Array.isArray(data) && data) ||
+        (Array.isArray(data?.data) && data.data) ||
+        (Array.isArray(data?.usuarios) && data.usuarios) ||
+        (Array.isArray(data?.result) && data.result) ||
+        [];
+
+      if (data?.success === false) {
+        setErrorTitle("No se pudieron cargar usuarios");
+        setErrorDesc(data?.error || "Error inesperado");
+        setShowError(true);
       }
 
+      setUsuarios(lista);
     } catch (error) {
       console.error("Error obteniendo usuarios:", error);
       setUsuarios([]);
+      setErrorTitle("Error de conexion");
+      setErrorDesc("No se pudo cargar la lista de usuarios.");
+      setShowError(true);
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +84,7 @@ function UsuariosPage() {
   }, []);
 
 
-  async function agregarUsuario(data: any): Promise<void> {
+  async function agregarUsuario(data: NuevoUsuarioData): Promise<void> {
     try {
       const res = await fetch('/api/usuario/register', {
         method: 'POST',
@@ -81,7 +101,7 @@ function UsuariosPage() {
         fetchData();
         setOpenNuevo(false);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Error creando usuario', e);
       fetchData();
       setOpenNuevo(false);
@@ -133,7 +153,7 @@ function UsuariosPage() {
           </button>
         </div>
 
-        <div className="border border-gray-300 rounded-lg overflow-hidden w-full overflow-x-auto">
+        <div className="hidden md:block border border-gray-300 rounded-lg overflow-hidden w-full overflow-x-auto">
           <div className="min-w-[800px]">
             <div className="grid grid-cols-4 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
               <div className="px-4 py-3 border-r border-gray-300">Nombre</div>
@@ -145,39 +165,85 @@ function UsuariosPage() {
             {isLoading ? (
               <div className="p-4 text-center text-gray-500">Cargando usuarios...</div>
             ) : (
-              usuarios
-                .filter((u) =>
-                  u.nombre.toLowerCase().includes(buscar.toLowerCase())
-                )
-                .map((u, i) => (
-                  <div
-                    key={u.id}
-                    className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"
-                      }`}
-                  >
-                    <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">{u.nombre}</div>
-                    <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">{u.email}</div>
-                    <div className="px-4 py-4 border-r border-gray-300 text-gray-700">{u.role}</div>
-
-                    <div className="px-4 py-4 flex justify-center gap-5">
-
-                      <HiOutlineTrash
-                        onClick={() => {
-                          setUsuarioSeleccionado(u);
-                          setShowConfirmDelete(true);
-                        }}
-                        className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
-                      />
-                    </div>
+              usuariosFiltrados.map((u, i) => (
+                <div
+                  key={u.id}
+                  className={`grid grid-cols-4 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"
+                    }`}
+                >
+                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700 truncate" title={u.nombre}>
+                    {u.nombre}
                   </div>
-                ))
+                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700 truncate" title={u.email}>
+                    {u.email}
+                  </div>
+                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700 truncate" title={u.role}>
+                    {u.role}
+                  </div>
+
+                  <div className="px-4 py-4 flex justify-center gap-5">
+
+                    <HiOutlineTrash
+                      onClick={() => {
+                        setUsuarioSeleccionado(u);
+                        setShowConfirmDelete(true);
+                      }}
+                      className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
+                    />
+                  </div>
+                </div>
+              ))
             )}
 
-            {!isLoading && usuarios.length === 0 && (
+            {!isLoading && usuariosFiltrados.length === 0 && (
               <div className="p-4 text-center text-gray-500">No se encontraron usuarios.</div>
             )}
           </div>
 
+        </div>
+
+        <div className="md:hidden space-y-3">
+          {isLoading ? (
+            <div className="p-4 text-center text-gray-500">Cargando usuarios...</div>
+          ) : usuariosFiltrados.length > 0 ? (
+            usuariosFiltrados.map((u) => (
+              <div
+                key={u.id}
+                className="rounded-xl border border-[#d6d9dd] bg-white shadow-sm overflow-hidden"
+              >
+                <div className="px-4 py-3 bg-[#f3f4f6] border-b border-[#e5e7eb]">
+                  <p className="text-sm font-semibold text-gray-800 truncate" title={u.nombre}>
+                    {u.nombre}
+                  </p>
+                </div>
+                <div className="px-4 py-3 space-y-2 text-sm text-gray-700">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-500">Email</span>
+                    <span className="font-medium text-right truncate max-w-[65%]" title={u.email}>
+                      {u.email}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-500">Rol</span>
+                    <span className="font-medium uppercase truncate max-w-[65%]" title={u.role}>
+                      {u.role}
+                    </span>
+                  </div>
+                </div>
+                <div className="px-4 py-3 bg-[#fafafa] border-t border-[#e5e7eb] flex justify-end">
+                  <HiOutlineTrash
+                    onClick={() => {
+                      setUsuarioSeleccionado(u);
+                      setShowConfirmDelete(true);
+                    }}
+                    className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
+                  />
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-center text-gray-500">No se encontraron usuarios.</div>
+          )}
         </div>
       </main>
 
@@ -196,9 +262,9 @@ function UsuariosPage() {
         onConfirm={async () => {
           try {
             await eliminarUsuario();
-          } catch (e: any) {
+          } catch (e: unknown) {
             setErrorTitle("Error al eliminar usuario");
-            setErrorDesc(e.message || "Error desconocido");
+            setErrorDesc(e instanceof Error ? e.message : "Error desconocido");
             setShowError(true);
           } finally {
             setShowConfirmDelete(false);

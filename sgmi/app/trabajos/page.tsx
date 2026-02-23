@@ -186,7 +186,7 @@ function TrabajosPage() {
           <div className="mb-4 text-red-600 text-sm">{errorTrabajos}</div>
         )}
 
-        <div className="border border-gray-300 rounded-lg overflow-hidden w-full overflow-x-auto">
+        <div className="hidden md:block border border-gray-300 rounded-lg overflow-hidden w-full overflow-x-auto">
           <div className="min-w-[900px]">
             <div className="grid grid-cols-5 bg-[#e5e7eb] border-b border-gray-300 text-sm font-medium text-gray-700">
               <div className="px-4 py-3 border-r border-gray-300">Trabajo</div>
@@ -206,11 +206,17 @@ function TrabajosPage() {
                   key={t.id ?? i}
                   className={`grid grid-cols-5 ${i % 2 === 0 ? "bg-[#f9fafb]" : "bg-[#f3f4f6]"}`}
                 >
-                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                  <div
+                    className="px-4 py-4 border-r border-gray-300 text-gray-700 truncate"
+                    title={t.titulo || "-"}
+                  >
                     {t.titulo || "-"}
                   </div>
 
-                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                  <div
+                    className="px-4 py-4 border-r border-gray-300 text-gray-700 truncate"
+                    title={modoGlobal ? t.pais || "-" : t.ciudad || "-"}
+                  >
                     {modoGlobal ? t.pais || "-" : t.ciudad || "-"}
                   </div>
 
@@ -218,7 +224,10 @@ function TrabajosPage() {
                     {formatDateShort(t.fecha_presentacion || t.fecha_creacion)}
                   </div>
 
-                  <div className="px-4 py-4 border-r border-gray-300 text-gray-700 break-words">
+                  <div
+                    className="px-4 py-4 border-r border-gray-300 text-gray-700 truncate"
+                    title={String(t.reunion || t.reunion_id || "-")}
+                  >
                     {t.reunion || t.reunion_id || "-"}
                   </div>
 
@@ -249,6 +258,69 @@ function TrabajosPage() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="md:hidden space-y-3">
+          {loadingTrabajos ? (
+            <div className="text-center py-6 text-gray-500">Cargando trabajos...</div>
+          ) : trabajosFinal.length > 0 ? (
+            trabajosFinal.map((t, i) => (
+              <div
+                key={t.id ?? i}
+                className="rounded-xl border border-[#d6d9dd] bg-white shadow-sm overflow-hidden"
+              >
+                <div className="px-4 py-3 bg-[#f3f4f6] border-b border-[#e5e7eb]">
+                  <p className="text-sm font-semibold text-gray-800 truncate" title={t.titulo || "-"}>
+                    {t.titulo || "-"}
+                  </p>
+                </div>
+                <div className="px-4 py-3 space-y-2 text-sm text-gray-700">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-500">{modoGlobal ? "Pais" : "Ciudad"}</span>
+                    <span
+                      className="font-medium text-right truncate max-w-[60%]"
+                      title={modoGlobal ? t.pais || "-" : t.ciudad || "-"}
+                    >
+                      {modoGlobal ? t.pais || "-" : t.ciudad || "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-500">Fecha</span>
+                    <span className="font-medium">{formatDateShort(t.fecha_presentacion || t.fecha_creacion)}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-gray-500">Reunion</span>
+                    <span
+                      className="font-medium text-right truncate max-w-[60%]"
+                      title={String(t.reunion || t.reunion_id || "-")}
+                    >
+                      {t.reunion || t.reunion_id || "-"}
+                    </span>
+                  </div>
+                </div>
+                <div className="px-4 py-3 bg-[#fafafa] border-t border-[#e5e7eb] flex justify-end gap-4">
+                  <HiOutlineEye
+                    onClick={() => {
+                      setVerTrabajo(t);
+                      setOpenVer(true);
+                    }}
+                    className="w-6 h-6 text-[#00c9a7] cursor-pointer hover:text-[#009e84]"
+                    title="Ver detalles"
+                  />
+                  <HiOutlineTrash
+                    onClick={() => {
+                      setTrabajoSeleccionado(t);
+                      setShowConfirmDelete(true);
+                    }}
+                    className="w-6 h-6 text-red-500 cursor-pointer hover:text-red-700"
+                    title="Eliminar"
+                  />
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-6 text-gray-500">No hay trabajos para mostrar</div>
+          )}
         </div>
 
         <div className="mt-6 flex justify-center items-center gap-4 text-gray-600 text-sm">
