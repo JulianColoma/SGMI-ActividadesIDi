@@ -154,13 +154,26 @@ export class TrabajoModel {
 }
 
   static async findById(id: number) {
-  // Solo traemos si el trabajo no está borrado
-  const r = await pool.query(
-    'SELECT * FROM trabajos_congresos WHERE id = $1 AND deleted_at IS NULL',
-    [id]
-  );
-  return r.rows.length ? r.rows[0] : null;
-}
+    // Solo traemos si el trabajo no está borrado y enriquecemos con JOINs
+    const q = `
+      SELECT tc.*, 
+             r.nombre AS reunion, 
+             r.ciudad AS ciudad, 
+             r.tipo AS reunion_tipo, 
+             r.pais AS pais,
+             p.nombre AS expositor_nombre,
+             m.anio AS memoria_anio,
+             g.nombre AS grupo_nombre
+      FROM trabajos_congresos tc
+      LEFT JOIN reuniones r ON tc.reunion_id = r.id
+      LEFT JOIN personal p ON tc.expositor_id = p.id
+      LEFT JOIN memorias m ON tc.memoria_id = m.id
+      LEFT JOIN grupos g ON m.grupo_id = g.id
+      WHERE tc.id = $1 AND tc.deleted_at IS NULL
+    `;
+    const r = await pool.query(q, [id]);
+    return r.rows.length ? r.rows[0] : null;
+  }
 
   static async update(id: number, data: Partial<ITrabajo>) {
   const updates: string[] = [];

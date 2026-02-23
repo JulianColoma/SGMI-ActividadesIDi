@@ -5,6 +5,9 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
+  items?: any[];
+  hasMore?: boolean;
+  nextCursor?: string | null;
 }
 
 export class GrupoController {
@@ -16,8 +19,16 @@ export class GrupoController {
   ): Promise<ApiResponse<IGrupo>> {
     
     try {
+      const nombreTrim = nombre.trim();
+      
+      // Chequeo de duplicados
+      const existente = await GrupoModel.findByNombre(nombreTrim);
+      if (existente) {
+        return { success: false, error: `Ya existe un grupo con el nombre "${nombreTrim}"` };
+      }
+
       const grupo = await GrupoModel.create({
-        nombre: nombre.trim(),
+        nombre: nombreTrim,
       });
 
       return {
@@ -84,6 +95,17 @@ export class GrupoController {
 
     try {
       if (!grupoId || grupoId <= 0) return { success: false, error: 'ID de grupo inválido' };
+
+      if (datos.nombre) {
+        const nombreTrim = datos.nombre.trim();
+        const existente = await GrupoModel.findByNombre(nombreTrim);
+        
+        // Si existe un grupo con ese nombre y no es el mismo que estamos editando
+        if (existente && existente.id !== grupoId) {
+          return { success: false, error: `Ya existe otro grupo con el nombre "${nombreTrim}"` };
+        }
+        datos.nombre = nombreTrim;
+      }
 
       const grupoActualizado = await GrupoModel.update(grupoId, datos);
       if (!grupoActualizado) return { success: false, error: 'No se pudo actualizar el grupo' };

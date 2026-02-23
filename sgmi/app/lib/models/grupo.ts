@@ -34,6 +34,16 @@ export class GrupoModel {
   }
 
   /**
+   * Obtener un grupo por nombre (activo)
+   */
+  static async findByNombre(nombre: string): Promise<IGrupo | null> {
+    const query = 'SELECT * FROM grupos WHERE unaccent(lower(nombre)) = unaccent(lower($1)) AND deleted_at IS NULL';
+    const result = await pool.query(query, [nombre.trim()]);
+    
+    return result.rows.length > 0 ? result.rows[0] : null;
+  }
+
+  /**
    * Obtener todos los grupos con opción de filtro
    */
   /**

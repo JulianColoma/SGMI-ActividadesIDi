@@ -133,12 +133,6 @@ export default function TrabajoFormPage({
         ? "internacional"
         : "nacional";
     }
-    if (
-      initialData.pais &&
-      String(initialData.pais).toLowerCase() !== "argentina"
-    ) {
-      return "internacional";
-    }
     return "nacional";
   }, [initialData]);
 
@@ -147,12 +141,15 @@ export default function TrabajoFormPage({
     setTipo(modoInicial);
     if (modoInicial === "nacional") {
       setForm((prev) => ({ ...prev, pais: "Argentina" }));
+    } else {
+      setForm((prev) => ({ ...prev, pais: "" }));
     }
   }, [isEdit, modoInicial]);
 
   useEffect(() => {
     if (!initialData) return;
-    setTipo(tipoDerivado);
+    const derived = tipoDerivado;
+    setTipo(derived);
     setForm({
       nombreReunion: initialData.reunion || initialData.nombreReunion || "",
       ciudad: initialData.ciudad || "",
@@ -162,7 +159,7 @@ export default function TrabajoFormPage({
         : "",
       titulo: initialData.titulo || "",
       pais:
-        initialData.pais || (tipoDerivado === "nacional" ? "Argentina" : ""),
+        initialData.pais || (derived === "nacional" ? "Argentina" : ""),
     });
   }, [initialData, tipoDerivado]);
 
@@ -195,9 +192,13 @@ export default function TrabajoFormPage({
 
   const handleChange = (field: string, value: string) => {
     setIsDirty(true);
-    if (field === "pais" && value.toLowerCase().trim() === "argentina") {
-      setTipo("nacional");
-      setForm((prev) => ({ ...prev, [field]: "Argentina" }));
+    if (field === "pais") {
+      const isArg = value.toLowerCase().trim() === "argentina";
+      if (isArg && tipo === "internacional") {
+        // Si el usuario escribe "Argentina" manualmente en internacional, 
+        // podrías dejarlo o forzar nacional. Por ahora solo actualizamos el valor.
+      }
+      setForm((prev) => ({ ...prev, [field]: value }));
       return;
     }
     if (field === "nombreReunion" || field === "titulo") {
@@ -312,7 +313,7 @@ export default function TrabajoFormPage({
               Volver a Trabajos Presentados
             </Link>
             <h1 className="text-2xl md:text-4xl font-semibold text-slate-900">
-              {isEdit ? "Editar Reunion" : "Nueva Reunion"}
+              {isEdit ? "Editar Trabajo" : "Nuevo Trabajo"}
             </h1>
             <p className="mt-2 text-sm md:text-base text-slate-500">
               Completa los datos del trabajo presentado. Los campos con * son obligatorios.
@@ -525,7 +526,7 @@ export default function TrabajoFormPage({
 
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div>
-                  <label className={labelClass}>Pais presentado</label>
+                  <label className={labelClass}>Pais presentado*</label>
                   {tipo === "nacional" ? (
                     <div className="relative">
                       <input
@@ -557,7 +558,7 @@ export default function TrabajoFormPage({
                 </div>
 
                 <div>
-                  <label className={labelClass}>Ciudad</label>
+                  <label className={labelClass}>Ciudad*</label>
                   <input
                     value={form.ciudad}
                     onChange={(e) => handleChange("ciudad", e.target.value)}
@@ -584,7 +585,7 @@ export default function TrabajoFormPage({
                       : "bg-gradient-to-r from-[#00c9a7] to-[#00b197] hover:brightness-95 shadow-[0_10px_24px_rgba(0,201,167,0.35)]"
                   }`}
                 >
-                  {loading ? "Guardando..." : "Guardar Proyecto"}
+                  {loading ? "Guardando..." : "Guardar Trabajo"}
                 </button>
               </div>
             </div>

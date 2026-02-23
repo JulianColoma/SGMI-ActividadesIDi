@@ -21,19 +21,13 @@ export class TrabajoController {
         let reunion = await ReunionModel.findByNameCity(nombre, ciudad);
         if (!reunion) {
           // Mapear tipo (cliente envía 'nacional'|'internacional') a formato DB
-          const tipo =
-            payload.tipo &&
-            String(payload.tipo).toLowerCase() === "internacional"
-              ? "INTERNACIONAL"
-              : "NACIONAL";
+          const tipoStr = String(payload.tipo || "").toUpperCase();
+          const tipo = tipoStr === "INTERNACIONAL" ? "INTERNACIONAL" : "NACIONAL";
           reunion = await ReunionModel.create({ nombre, ciudad, tipo, pais });
         } else {
           // Si ya existe pero el cliente envió tipo/pais, intentar actualizar la reunión existente
-          const tipo =
-            payload.tipo &&
-            String(payload.tipo).toLowerCase() === "internacional"
-              ? "INTERNACIONAL"
-              : "NACIONAL";
+          const tipoStr = String(payload.tipo || "").toUpperCase();
+          const tipo = tipoStr === "INTERNACIONAL" ? "INTERNACIONAL" : "NACIONAL";
           await ReunionModel.update(reunion.id, { tipo, pais, ciudad, nombre });
         }
 
@@ -109,19 +103,13 @@ export class TrabajoController {
 
         let reunion = await ReunionModel.findByNameCity(nombre, ciudad);
         if (!reunion) {
-          const tipo =
-            payload.tipo &&
-            String(payload.tipo).toLowerCase() === "internacional"
-              ? "INTERNACIONAL"
-              : "NACIONAL";
+          const tipoStr = String(payload.tipo || "").toUpperCase();
+          const tipo = tipoStr === "INTERNACIONAL" ? "INTERNACIONAL" : "NACIONAL";
           reunion = await ReunionModel.create({ nombre, ciudad, tipo, pais });
         } else {
           // Si ya existe la reunión, actualizar sus datos si el payload trae cambios
-          const tipo =
-            payload.tipo &&
-            String(payload.tipo).toLowerCase() === "internacional"
-              ? "INTERNACIONAL"
-              : "NACIONAL";
+          const tipoStr = String(payload.tipo || "").toUpperCase();
+          const tipo = tipoStr === "INTERNACIONAL" ? "INTERNACIONAL" : "NACIONAL";
           await ReunionModel.update(reunion.id, { tipo, pais, ciudad, nombre });
         }
 

@@ -66,11 +66,18 @@ function MemoriasPage() {
   const [confirmMessage, setConfirmMessage] = useState("");
   const [confirmAction, setConfirmAction] = useState<null | (() => void)>(null);
 
-  const showError = (title: string, desc: string) => {
-    setErrorTitle(title);
-    setErrorDesc(desc);
-    setErrorOpen(true);
-  };
+ const showError = (title: string, desc: any) => {
+  let finalDesc = desc;
+  if (Array.isArray(desc)) {
+    finalDesc = desc.map(d => d.message || JSON.stringify(d)).join(", ");
+  } else if (typeof desc === 'object' && desc !== null) {
+    finalDesc = desc.message || JSON.stringify(desc);
+  }
+  setErrorTitle(title);
+  setErrorDesc(String(finalDesc));
+  setErrorOpen(true);
+};
+
 
   const fetchMemoriasGrupo = async (
     grupoId: number,
