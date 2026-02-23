@@ -54,7 +54,7 @@ export class InvestigacionModel {
     }
   }
 
-  static async findAllPaginado(opts?: { cursor?: string | null; memoriaId?: number }) {
+  static async findAllPaginado(opts?: { cursor?: string | null; memoriaId?: number; q?: string }) {
     const LIMIT = 2;
     const cursor = opts?.cursor ?? null;
     const memoriaId = opts?.memoriaId;
@@ -75,6 +75,16 @@ export class InvestigacionModel {
     if (memoriaId) {
       params.push(memoriaId);
       q += ` AND i.memoria_id = $${params.length} `;
+    }
+
+    if (opts?.q?.trim()) {
+      params.push(`%${opts.q.trim()}%`);
+      q += ` AND (
+        i.nombre ILIKE $${params.length}
+        OR COALESCE(i.codigo, '') ILIKE $${params.length}
+        OR COALESCE(i.tipo, '') ILIKE $${params.length}
+        OR COALESCE(i.descripcion, '') ILIKE $${params.length}
+      ) `;
     }
 
     if (lastId !== null) {

@@ -74,7 +74,7 @@ function MemoriaDetallePage() {
     }
   };
 
-  const fetchTrabajos = async (opts?: { cursor?: string | null; reset?: boolean }) => {
+  const fetchTrabajos = async (opts?: { cursor?: string | null; reset?: boolean; q?: string }) => {
     if (!Number.isFinite(memoriaId)) return;
     try {
       setLoadingTrabajos(true);
@@ -88,6 +88,7 @@ function MemoriaDetallePage() {
       const params = new URLSearchParams();
       params.set("memoriaId", String(memoriaId));
       if (opts?.cursor) params.set("cursor", opts.cursor);
+      if (opts?.q?.trim()) params.set("q", opts.q.trim());
 
       const res = await fetch(`/api/trabajo?${params.toString()}`, {
         method: "GET",
@@ -117,7 +118,7 @@ function MemoriaDetallePage() {
     }
   };
 
-  const fetchProyectos = async (opts?: { cursor?: string | null; reset?: boolean }) => {
+  const fetchProyectos = async (opts?: { cursor?: string | null; reset?: boolean; q?: string }) => {
     if (!Number.isFinite(memoriaId)) return;
     try {
       setLoadingProyectos(true);
@@ -131,6 +132,7 @@ function MemoriaDetallePage() {
       const params = new URLSearchParams();
       params.set("memoriaId", String(memoriaId));
       if (opts?.cursor) params.set("cursor", opts.cursor);
+      if (opts?.q?.trim()) params.set("q", opts.q.trim());
 
       const res = await fetch(`/api/investigacion?${params.toString()}`, {
         method: "GET",
@@ -162,9 +164,21 @@ function MemoriaDetallePage() {
 
   useEffect(() => {
     fetchMemoria();
-    fetchTrabajos({ reset: true });
-    fetchProyectos({ reset: true });
   }, [id]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchTrabajos({ reset: true, q: busquedaTrabajo });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [id, busquedaTrabajo]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchProyectos({ reset: true, q: busquedaProyecto });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [id, busquedaProyecto]);
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -199,7 +213,7 @@ function MemoriaDetallePage() {
         showError("Error al eliminar", data.error || "No se pudo eliminar el trabajo.");
         return;
       }
-      await fetchTrabajos({ cursor: cursorTrabajos });
+      await fetchTrabajos({ cursor: cursorTrabajos, q: busquedaTrabajo });
     } catch {
       showError("Error de conexion", "No se pudo contactar al servidor.");
     }
@@ -236,7 +250,7 @@ function MemoriaDetallePage() {
         return;
       }
 
-      await fetchProyectos({ cursor: cursorProyectos });
+      await fetchProyectos({ cursor: cursorProyectos, q: busquedaProyecto });
     } catch {
       showError("Error de conexion", "No se pudo contactar al servidor.");
     }
@@ -252,24 +266,10 @@ function MemoriaDetallePage() {
     const esInternacional =
       t.reunion_tipo === "INTERNACIONAL" ||
       (t.pais && String(t.pais).toLowerCase() !== "argentina");
-    const cumpleModo = modoGlobal ? esInternacional : !esInternacional;
-    const q = busquedaTrabajo.toLowerCase();
-    const cumpleBusqueda =
-      t.titulo?.toLowerCase().includes(q) ||
-      t.reunion?.toLowerCase().includes(q) ||
-      t.expositor_nombre?.toLowerCase().includes(q);
-
-    return cumpleModo && cumpleBusqueda;
+    return modoGlobal ? esInternacional : !esInternacional;
   });
 
-  const proyectosFiltrados = proyectos.filter((p) => {
-    const q = busquedaProyecto.toLowerCase();
-    return (
-      p.nombre?.toLowerCase().includes(q) ||
-      p.codigo?.toLowerCase().includes(q) ||
-      p.tipo?.toLowerCase().includes(q)
-    );
-  });
+  const proyectosFiltrados = proyectos;
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
@@ -430,7 +430,7 @@ function MemoriaDetallePage() {
                   setCursorStackTrabajos(newStack);
                   setCursorTrabajos(prev);
                   setPageTrabajos((p) => Math.max(1, p - 1));
-                  fetchTrabajos({ cursor: prev });
+                  fetchTrabajos({ cursor: prev, q: busquedaTrabajo });
                 }}
                 disabled={pageTrabajos === 1 || loadingTrabajos}
                 className={`px-3 py-1 rounded border ${
@@ -450,7 +450,7 @@ function MemoriaDetallePage() {
                   setCursorStackTrabajos((s) => [...s, cursorTrabajos ?? ""]);
                   setCursorTrabajos(nextCursorTrabajos);
                   setPageTrabajos((p) => p + 1);
-                  fetchTrabajos({ cursor: nextCursorTrabajos });
+                  fetchTrabajos({ cursor: nextCursorTrabajos, q: busquedaTrabajo });
                 }}
                 disabled={!hasMoreTrabajos || loadingTrabajos}
                 className={`px-3 py-1 rounded border ${
@@ -534,7 +534,7 @@ function MemoriaDetallePage() {
                   setCursorStackProyectos(newStack);
                   setCursorProyectos(prev);
                   setPageProyectos((p) => Math.max(1, p - 1));
-                  fetchProyectos({ cursor: prev });
+                  fetchProyectos({ cursor: prev, q: busquedaProyecto });
                 }}
                 disabled={pageProyectos === 1 || loadingProyectos}
                 className={`px-3 py-1 rounded border ${
@@ -554,7 +554,7 @@ function MemoriaDetallePage() {
                   setCursorStackProyectos((s) => [...s, cursorProyectos ?? ""]);
                   setCursorProyectos(nextCursorProyectos);
                   setPageProyectos((p) => p + 1);
-                  fetchProyectos({ cursor: nextCursorProyectos });
+                  fetchProyectos({ cursor: nextCursorProyectos, q: busquedaProyecto });
                 }}
                 disabled={!hasMoreProyectos || loadingProyectos}
                 className={`px-3 py-1 rounded border ${

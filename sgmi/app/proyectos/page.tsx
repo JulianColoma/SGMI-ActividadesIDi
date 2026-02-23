@@ -39,7 +39,7 @@ function ProyectosPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProyectos = async (opts?: { cursor?: string | null; reset?: boolean }) => {
+  const fetchProyectos = async (opts?: { cursor?: string | null; reset?: boolean; q?: string }) => {
     try {
       setError(null);
       setLoading(true);
@@ -51,6 +51,7 @@ function ProyectosPage() {
 
       const params = new URLSearchParams();
       if (opts?.cursor) params.set("cursor", opts.cursor);
+      if (opts?.q?.trim()) params.set("q", opts.q.trim());
 
       const res = await fetch(`/api/investigacion?${params.toString()}`, {
         method: "GET",
@@ -81,8 +82,11 @@ function ProyectosPage() {
   };
 
   useEffect(() => {
-    fetchProyectos({ reset: true });
-  }, []);
+    const timer = setTimeout(() => {
+      fetchProyectos({ reset: true, q: busqueda });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [busqueda]);
 
   async function handleDeleteConfirm() {
     if (!proyectoSeleccionado) return;
@@ -97,7 +101,7 @@ function ProyectosPage() {
         setErrorDesc(json.error || json.message || "Intente nuevamente");
         setShowError(true);
       } else {
-        await fetchProyectos({ reset: true });
+        await fetchProyectos({ reset: true, q: busqueda });
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Error al eliminar";
@@ -110,11 +114,7 @@ function ProyectosPage() {
     }
   }
 
-  const proyectosFiltrados = proyectos.filter((p) =>
-    (p.nombre || "").toLowerCase().includes(busqueda.toLowerCase()) ||
-    (p.codigo || "").toLowerCase().includes(busqueda.toLowerCase()) ||
-    (p.tipo || "").toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const proyectosFiltrados = proyectos;
 
   return (
     <div className="min-h-screen flex bg-[#f3f4f6] font-sans">
@@ -217,7 +217,7 @@ function ProyectosPage() {
               setCursorStack(newStack);
               setCursor(prev);
               setPage((p) => Math.max(1, p - 1));
-              fetchProyectos({ cursor: prev });
+              fetchProyectos({ cursor: prev, q: busqueda });
             }}
             disabled={page === 1 || loading}
             className={`px-3 py-1 rounded border ${
@@ -239,7 +239,7 @@ function ProyectosPage() {
               setCursorStack((s) => [...s, cursor ?? ""]);
               setCursor(nextCursor);
               setPage((p) => p + 1);
-              fetchProyectos({ cursor: nextCursor });
+              fetchProyectos({ cursor: nextCursor, q: busqueda });
             }}
             disabled={!hasMore || loading}
             className={`px-3 py-1 rounded border ${
@@ -284,4 +284,3 @@ function ProyectosPage() {
 }
 
 export default withAuth(ProyectosPage);
-

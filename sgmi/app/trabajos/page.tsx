@@ -47,13 +47,14 @@ function TrabajosPage() {
   const [cursorStack, setCursorStack] = useState<string[]>([]);
   const [page, setPage] = useState(1);
 
-  const fetchTrabajos = async (opts?: { cursor?: string | null; reset?: boolean }) => {
+  const fetchTrabajos = async (opts?: { cursor?: string | null; reset?: boolean; q?: string }) => {
     try {
       setErrorTrabajos(null);
       setLoadingTrabajos(true);
 
       const params = new URLSearchParams();
       if (opts?.cursor) params.set("cursor", opts.cursor);
+      if (opts?.q?.trim()) params.set("q", opts.q.trim());
 
       const res = await fetch(`/api/trabajo?${params.toString()}`, {
         method: "GET",
@@ -90,8 +91,11 @@ function TrabajosPage() {
   };
 
   useEffect(() => {
-    fetchTrabajos();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchTrabajos({ reset: true, q: busqueda });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [busqueda]);
 
   const filtrados = trabajos.filter((t) => {
     const tipo =
@@ -99,10 +103,7 @@ function TrabajosPage() {
     return modoGlobal ? tipo === "internacional" : tipo === "nacional";
   });
 
-  const trabajosFinal = filtrados.filter((t) => {
-    const q = busqueda.toLowerCase().trim();
-    return (t.titulo || "").toLowerCase().includes(q);
-  });
+  const trabajosFinal = filtrados;
 
   const formatDateShort = (d?: string) => {
     if (!d) return "-";
@@ -258,7 +259,7 @@ function TrabajosPage() {
               setCursorStack(newStack);
               setCursor(prev);
               setPage((p) => Math.max(1, p - 1));
-              fetchTrabajos({ cursor: prev });
+              fetchTrabajos({ cursor: prev, q: busqueda });
             }}
             disabled={page === 1 || loadingTrabajos}
             className={`px-3 py-1 rounded border ${
@@ -280,7 +281,7 @@ function TrabajosPage() {
               setCursorStack((s) => [...s, cursor ?? ""]);
               setCursor(nextCursor);
               setPage((p) => p + 1);
-              fetchTrabajos({ cursor: nextCursor });
+              fetchTrabajos({ cursor: nextCursor, q: busqueda });
             }}
             disabled={!hasMore || loadingTrabajos}
             className={`px-3 py-1 rounded border ${
@@ -314,7 +315,7 @@ function TrabajosPage() {
               const data = await res.json();
 
               if (res.ok && data.success) {
-                await fetchTrabajos();
+                await fetchTrabajos({ cursor, q: busqueda });
               } else {
                 setErrorTitle("No se pudo eliminar");
                 setErrorDesc(data.error || data.message || "Intente nuevamente");

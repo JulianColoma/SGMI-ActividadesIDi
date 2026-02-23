@@ -19,7 +19,7 @@ export class InvestigacionController {
     }
   }
 
-  static async getAll(opts?: { cursor?: string | null; memoriaId?: number }) {
+  static async getAll(opts?: { cursor?: string | null; memoriaId?: number; q?: string }) {
     try {
       const { data, pageInfo } = await InvestigacionModel.findAllPaginado(opts);
       return {

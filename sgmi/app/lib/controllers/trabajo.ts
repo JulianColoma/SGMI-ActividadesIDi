@@ -78,6 +78,7 @@ export class TrabajoController {
     grupoId?: number;
     memoriaId?: number;
     cursor?: string | null;
+    q?: string;
   }) {
     try {
       const data = await TrabajoModel.findAllpaginado(opst);

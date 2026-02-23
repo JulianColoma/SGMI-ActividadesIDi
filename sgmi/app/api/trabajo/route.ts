@@ -10,9 +10,10 @@ export async function GET(request: NextRequest) {
     const grupoId = sp.has('grupoId') ? Number(sp.get('grupoId')) : undefined;
     const memoriaId = sp.has('memoriaId') ? Number(sp.get('memoriaId')) : undefined;
     const cursor = sp.get('cursor');
+    const q = sp.get('q') ?? undefined;
 
 
-    const res = await TrabajoController.getAll({grupoId, memoriaId, cursor});
+    const res = await TrabajoController.getAll({grupoId, memoriaId, cursor, q});
     return NextResponse.json(res, { status: res.success ? 200 : 400 });
   } catch (e: any) { return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 }); }
 }

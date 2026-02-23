@@ -56,6 +56,7 @@ export class TrabajoModel {
     grupoId?: number;
     memoriaId?: number;
     cursor?: string | null;
+    q?: string;
   }) {
     const pageSize = 2;
     const take = pageSize + 1; // 11
@@ -86,6 +87,17 @@ export class TrabajoModel {
     if (opts?.memoriaId) {
       q += ` AND tc.memoria_id = $${idx++}`;
       params.push(opts.memoriaId);
+    }
+    if (opts?.q?.trim()) {
+      q += ` AND (
+        tc.titulo ILIKE $${idx}
+        OR COALESCE(r.nombre, '') ILIKE $${idx}
+        OR COALESCE(p.nombre, '') ILIKE $${idx}
+        OR COALESCE(r.ciudad, '') ILIKE $${idx}
+        OR COALESCE(r.pais, '') ILIKE $${idx}
+      )`;
+      params.push(`%${opts.q.trim()}%`);
+      idx++;
     }
     if (cursor) {
       const c = this.decodeCursor(cursor);
