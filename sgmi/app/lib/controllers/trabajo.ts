@@ -74,7 +74,11 @@ export class TrabajoController {
     }
   }
 
-  static async getAll(opst?:{grupoId?: number, cursor?: string | null}) {
+  static async getAll(opst?: {
+    grupoId?: number;
+    memoriaId?: number;
+    cursor?: string | null;
+  }) {
     try {
       const data = await TrabajoModel.findAllpaginado(opst);
       return { success: true,items: data.items, nextCursor: data.nextCursor, hasMore: data.hasMore };

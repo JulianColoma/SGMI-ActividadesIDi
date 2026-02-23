@@ -52,8 +52,12 @@ export class TrabajoModel {
     return JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
   }
 
-  static async findAllpaginado(opts?: { grupoId?: number; cursor?: string | null }) {
-    const pageSize = 10;
+  static async findAllpaginado(opts?: {
+    grupoId?: number;
+    memoriaId?: number;
+    cursor?: string | null;
+  }) {
+    const pageSize = 2;
     const take = pageSize + 1; // 11
     const cursor = opts?.cursor ?? null;
     let params: any[] = [];
@@ -78,6 +82,10 @@ export class TrabajoModel {
     if (opts?.grupoId) {
       q += ` AND g.id = $${idx++}`;
       params.push(opts.grupoId);
+    }
+    if (opts?.memoriaId) {
+      q += ` AND tc.memoria_id = $${idx++}`;
+      params.push(opts.memoriaId);
     }
     if (cursor) {
       const c = this.decodeCursor(cursor);

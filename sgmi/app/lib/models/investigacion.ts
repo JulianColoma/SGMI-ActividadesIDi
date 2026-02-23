@@ -54,8 +54,10 @@ export class InvestigacionModel {
     }
   }
 
-  static async findAllPaginado(cursor?: string | null) {
-    const LIMIT = 10;
+  static async findAllPaginado(opts?: { cursor?: string | null; memoriaId?: number }) {
+    const LIMIT = 2;
+    const cursor = opts?.cursor ?? null;
+    const memoriaId = opts?.memoriaId;
     const lastId = cursor ? this.decodeCursor(cursor) : null;
 
     let q = `
@@ -69,6 +71,11 @@ export class InvestigacionModel {
     `;
 
     const params: any[] = [];
+
+    if (memoriaId) {
+      params.push(memoriaId);
+      q += ` AND i.memoria_id = $${params.length} `;
+    }
 
     if (lastId !== null) {
       params.push(lastId.id);
