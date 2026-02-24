@@ -57,6 +57,7 @@ export class TrabajoModel {
     memoriaId?: number;
     cursor?: string | null;
     q?: string;
+    reunionTipo?: "NACIONAL" | "INTERNACIONAL";
   }) {
     const pageSize = 2;
     const take = pageSize + 1; // 11
@@ -98,6 +99,10 @@ export class TrabajoModel {
       )`;
       params.push(`%${opts.q.trim()}%`);
       idx++;
+    }
+    if (opts?.reunionTipo) {
+      q += ` AND UPPER(COALESCE(r.tipo, 'NACIONAL')) = $${idx++}`;
+      params.push(opts.reunionTipo);
     }
     if (cursor) {
       const c = this.decodeCursor(cursor);

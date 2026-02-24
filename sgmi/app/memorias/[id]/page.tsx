@@ -89,6 +89,7 @@ function MemoriaDetallePage() {
       params.set("memoriaId", String(memoriaId));
       if (opts?.cursor) params.set("cursor", opts.cursor);
       if (opts?.q?.trim()) params.set("q", opts.q.trim());
+      params.set("modo", modoGlobal ? "internacional" : "nacional");
 
       const res = await fetch(`/api/trabajo?${params.toString()}`, {
         method: "GET",
@@ -171,7 +172,7 @@ function MemoriaDetallePage() {
       fetchTrabajos({ reset: true, q: busquedaTrabajo });
     }, 350);
     return () => clearTimeout(timer);
-  }, [id, busquedaTrabajo]);
+  }, [id, busquedaTrabajo, modoGlobal]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -213,6 +214,13 @@ function MemoriaDetallePage() {
         showError("Error al eliminar", data.error || "No se pudo eliminar el trabajo.");
         return;
       }
+      setMemoria((prev: any) => {
+        if (!prev || !Array.isArray(prev.trabajos)) return prev;
+        return {
+          ...prev,
+          trabajos: prev.trabajos.filter((t: any) => t?.id !== trabajoId),
+        };
+      });
       await fetchTrabajos({ cursor: cursorTrabajos, q: busquedaTrabajo });
     } catch {
       showError("Error de conexion", "No se pudo contactar al servidor.");
@@ -249,6 +257,13 @@ function MemoriaDetallePage() {
         showError("Error al eliminar", data.error || "No se pudo eliminar el proyecto.");
         return;
       }
+      setMemoria((prev: any) => {
+        if (!prev || !Array.isArray(prev.proyectos)) return prev;
+        return {
+          ...prev,
+          proyectos: prev.proyectos.filter((p: any) => p?.id !== proyectoId),
+        };
+      });
 
       await fetchProyectos({ cursor: cursorProyectos, q: busquedaProyecto });
     } catch {
@@ -262,14 +277,11 @@ function MemoriaDetallePage() {
     setConfirmOpen(true);
   };
 
-  const trabajosFiltrados = trabajos.filter((t) => {
-    const esInternacional =
-      t.reunion_tipo === "INTERNACIONAL" ||
-      (t.pais && String(t.pais).toLowerCase() !== "argentina");
-    return modoGlobal ? esInternacional : !esInternacional;
-  });
+  const trabajosFiltrados = trabajos;
 
   const proyectosFiltrados = proyectos;
+  const totalTrabajos = Array.isArray(memoria?.trabajos) ? memoria.trabajos.length : trabajos.length;
+  const totalProyectos = Array.isArray(memoria?.proyectos) ? memoria.proyectos.length : proyectos.length;
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
@@ -310,7 +322,7 @@ function MemoriaDetallePage() {
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            Trabajos presentados ({trabajos.length})
+            Trabajos presentados ({totalTrabajos})
           </button>
 
           <button
@@ -321,7 +333,7 @@ function MemoriaDetallePage() {
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            Proyectos vinculados ({proyectos.length})
+            Proyectos vinculados ({totalProyectos})
           </button>
         </div>
 

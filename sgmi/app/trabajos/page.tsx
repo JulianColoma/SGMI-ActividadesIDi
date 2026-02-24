@@ -55,6 +55,7 @@ function TrabajosPage() {
       const params = new URLSearchParams();
       if (opts?.cursor) params.set("cursor", opts.cursor);
       if (opts?.q?.trim()) params.set("q", opts.q.trim());
+      params.set("modo", modoGlobal ? "internacional" : "nacional");
 
       const res = await fetch(`/api/trabajo?${params.toString()}`, {
         method: "GET",
@@ -95,15 +96,9 @@ function TrabajosPage() {
       fetchTrabajos({ reset: true, q: busqueda });
     }, 350);
     return () => clearTimeout(timer);
-  }, [busqueda]);
+  }, [busqueda, modoGlobal]);
 
-  const filtrados = trabajos.filter((t) => {
-    const tipo =
-      t.reunion_tipo === "INTERNACIONAL" ? "internacional" : "nacional";
-    return modoGlobal ? tipo === "internacional" : tipo === "nacional";
-  });
-
-  const trabajosFinal = filtrados;
+  const trabajosFinal = trabajos;
 
   const formatDateShort = (d?: string) => {
     if (!d) return "-";
