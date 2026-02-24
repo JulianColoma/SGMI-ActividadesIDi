@@ -201,7 +201,7 @@ export default function TrabajoFormPage({
       setForm((prev) => ({ ...prev, [field]: value }));
       return;
     }
-    if (field === "nombreReunion" || field === "titulo") {
+    if (field === "nombreReunion" || field === "titulo" || field === "expositor" || field === "ciudad" || field === "pais") {
       setForm((prev) => ({ ...prev, [field]: value.slice(0, MAX_LONG_TEXT) }));
       return;
     }
@@ -286,6 +286,24 @@ export default function TrabajoFormPage({
   const textareaClass = `${inputClass} min-h-[84px] resize-y`;
   const nombreRemaining = MAX_LONG_TEXT - form.nombreReunion.length;
   const tituloRemaining = MAX_LONG_TEXT - form.titulo.length;
+  const expositorRemaining = MAX_LONG_TEXT - form.expositor.length;
+  const ciudadRemaining = MAX_LONG_TEXT - form.ciudad.length;
+  const paisRemaining = MAX_LONG_TEXT - form.pais.length;
+
+  const CounterUI = ({ current, max, remaining }: { current: number; max: number; remaining: number }) => (
+    <div
+      className={`mt-2 text-xs ${
+        remaining <= WARN_THRESHOLD
+          ? "text-amber-600"
+          : "text-slate-500"
+      }`}
+    >
+      {current}/{max} caracteres
+      {remaining <= WARN_THRESHOLD
+        ? ` - Quedan ${remaining}`
+        : ""}
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex bg-[#f3f4f6]">
@@ -458,7 +476,9 @@ export default function TrabajoFormPage({
                     onChange={(e) => handleChange("expositor", e.target.value)}
                     className={inputClass}
                     placeholder="Nombre completo"
+                    maxLength={MAX_LONG_TEXT}
                   />
+                  <CounterUI current={form.expositor.length} max={MAX_LONG_TEXT} remaining={expositorRemaining} />
                 </div>
                 <div>
                   <label className={labelClass}>Fecha Inicio*</label>
@@ -481,18 +501,7 @@ export default function TrabajoFormPage({
                     className={textareaClass}
                     placeholder="Bateria de Litio"
                   />
-                  <div
-                    className={`mt-2 text-xs ${
-                      nombreRemaining <= WARN_THRESHOLD
-                        ? "text-amber-600"
-                        : "text-slate-500"
-                    }`}
-                  >
-                    {form.nombreReunion.length}/{MAX_LONG_TEXT} caracteres
-                    {nombreRemaining <= WARN_THRESHOLD
-                      ? ` - Quedan ${nombreRemaining}`
-                      : ""}
-                  </div>
+                  <CounterUI current={form.nombreReunion.length} max={MAX_LONG_TEXT} remaining={nombreRemaining} />
                   {fieldErrors.nombreReunion && (
                     <Hint show={true} message={fieldErrors.nombreReunion} type="error" />
                   )}
@@ -506,18 +515,7 @@ export default function TrabajoFormPage({
                     className={textareaClass}
                     placeholder="Titulo"
                   />
-                  <div
-                    className={`mt-2 text-xs ${
-                      tituloRemaining <= WARN_THRESHOLD
-                        ? "text-amber-600"
-                        : "text-slate-500"
-                    }`}
-                  >
-                    {form.titulo.length}/{MAX_LONG_TEXT} caracteres
-                    {tituloRemaining <= WARN_THRESHOLD
-                      ? ` - Quedan ${tituloRemaining}`
-                      : ""}
-                  </div>
+                  <CounterUI current={form.titulo.length} max={MAX_LONG_TEXT} remaining={tituloRemaining} />
                   {fieldErrors.titulo && (
                     <Hint show={true} message={fieldErrors.titulo} type="error" />
                   )}
@@ -544,8 +542,10 @@ export default function TrabajoFormPage({
                       onChange={(e) => handleChange("pais", e.target.value)}
                       className={inputClass}
                       placeholder="Pais"
+                      maxLength={MAX_LONG_TEXT}
                     />
                   )}
+                  <CounterUI current={form.pais.length} max={MAX_LONG_TEXT} remaining={paisRemaining} />
                   {tipo === "nacional" && (
                     <p className="mt-2 text-xs text-slate-500">
                       Este campo se bloquea para reuniones nacionales y se
@@ -564,7 +564,9 @@ export default function TrabajoFormPage({
                     onChange={(e) => handleChange("ciudad", e.target.value)}
                     className={inputClass}
                     placeholder="Ciudad"
+                    maxLength={MAX_LONG_TEXT}
                   />
+                  <CounterUI current={form.ciudad.length} max={MAX_LONG_TEXT} remaining={ciudadRemaining} />
                 </div>
               </div>
 

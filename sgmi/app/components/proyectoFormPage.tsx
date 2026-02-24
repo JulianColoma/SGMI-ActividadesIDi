@@ -40,7 +40,10 @@ const MAX_FINANCIAMIENTO = 200;
 const MAX_DESCRIPCION = 1000;
 const MAX_LOGROS = 1000;
 const MAX_DIFICULTADES = 1000;
-const WARN_CHARS = 80;
+const MAX_TIPO = 50;
+const MAX_CODIGO = 50;
+const MAX_NOMBRE = 255;
+const WARN_CHARS = 30;
 
 export default function ProyectoFormPage({
   mode,
@@ -189,6 +192,18 @@ export default function ProyectoFormPage({
       setForm((prev) => ({ ...prev, [field]: value.slice(0, MAX_DIFICULTADES) }));
       return;
     }
+    if (field === "tipo") {
+      setForm((prev) => ({ ...prev, [field]: value.slice(0, MAX_TIPO) }));
+      return;
+    }
+    if (field === "codigo") {
+      setForm((prev) => ({ ...prev, [field]: value.slice(0, MAX_CODIGO) }));
+      return;
+    }
+    if (field === "nombre") {
+      setForm((prev) => ({ ...prev, [field]: value.slice(0, MAX_NOMBRE) }));
+      return;
+    }
 
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -196,14 +211,14 @@ export default function ProyectoFormPage({
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!form.tipo.trim()) errs.tipo = "El tipo es obligatorio";
-    if (form.tipo.trim().length > 50) errs.tipo = "Maximo 50 caracteres";
+    if (form.tipo.trim().length > MAX_TIPO) errs.tipo = `Maximo ${MAX_TIPO} caracteres`;
     if (!form.codigo.trim()) errs.codigo = "El codigo es obligatorio";
-    if (form.codigo.trim().length > 50) errs.codigo = "Maximo 50 caracteres";
+    if (form.codigo.trim().length > MAX_CODIGO) errs.codigo = `Maximo ${MAX_CODIGO} caracteres`;
     if (!form.nombre.trim()) errs.nombre = "El nombre es obligatorio";
     if (form.nombre.trim().length < 3) {
       errs.nombre = "El nombre debe tener al menos 3 caracteres";
     }
-    if (form.nombre.trim().length > 255) errs.nombre = "Maximo 255 caracteres";
+    if (form.nombre.trim().length > MAX_NOMBRE) errs.nombre = `Maximo ${MAX_NOMBRE} caracteres`;
     if (!form.fecha_inicio) errs.fecha_inicio = "La fecha de inicio es obligatoria";
     if (
       form.fecha_inicio &&
@@ -343,8 +358,9 @@ export default function ProyectoFormPage({
                     onChange={(e) => handleChange("tipo", e.target.value)}
                     className={inputClass}
                     placeholder="Medio Ambiente"
-                    maxLength={50}
+                    maxLength={MAX_TIPO}
                   />
+                  <Counter used={form.tipo.length} max={MAX_TIPO} />
                   {fieldErrors.tipo && (
                     <Hint show={true} message={fieldErrors.tipo} type="error" />
                   )}
@@ -359,8 +375,9 @@ export default function ProyectoFormPage({
                     onChange={(e) => handleChange("nombre", e.target.value)}
                     className={inputClass}
                     placeholder="Bateria de Litio"
-                    maxLength={255}
+                    maxLength={MAX_NOMBRE}
                   />
+                  <Counter used={form.nombre.length} max={MAX_NOMBRE} />
                   {fieldErrors.nombre && (
                     <Hint show={true} message={fieldErrors.nombre} type="error" />
                   )}
@@ -377,8 +394,9 @@ export default function ProyectoFormPage({
                     onChange={(e) => handleChange("codigo", e.target.value)}
                     className={inputClass}
                     placeholder="0201201221"
-                    maxLength={50}
+                    maxLength={MAX_CODIGO}
                   />
+                  <Counter used={form.codigo.length} max={MAX_CODIGO} />
                   {fieldErrors.codigo && (
                     <Hint show={true} message={fieldErrors.codigo} type="error" />
                   )}
