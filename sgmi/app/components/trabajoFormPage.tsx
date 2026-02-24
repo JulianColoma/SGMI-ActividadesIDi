@@ -7,6 +7,7 @@ import { HiOutlineArrowLeft } from "react-icons/hi";
 import Sidebar from "./sidebar";
 import UserPill from "./userPill";
 import Hint from "./alerts/Hint";
+import ErrorModal from "./alerts/ErrorModal";
 import ConfirmModal from "./alerts/ConfrimModal";
 import { Toast } from "@/app/lib/swal";
 
@@ -57,7 +58,6 @@ export default function TrabajoFormPage({
   const isEdit = mode === "edit";
 
   const [loadingInitial, setLoadingInitial] = useState(isEdit);
-  const [initialError, setInitialError] = useState<string | null>(null);
   const [initialData, setInitialData] = useState<TrabajoApiData | null>(null);
 
   const [grupos, setGrupos] = useState<Grupo[]>([]);
@@ -81,6 +81,16 @@ export default function TrabajoFormPage({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isDirty, setIsDirty] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorDesc, setErrorDesc] = useState("");
+
+  const showErrorModal = (title: string, desc: string) => {
+    setErrorTitle(title);
+    setErrorDesc(desc);
+    setErrorOpen(true);
+  };
   const MAX_LONG_TEXT = 255;
   const WARN_THRESHOLD = 30;
 
@@ -105,19 +115,18 @@ export default function TrabajoFormPage({
       if (!isEdit || !trabajoId) return;
       try {
         setLoadingInitial(true);
-        setInitialError(null);
         const res = await fetch(`/api/trabajo/${trabajoId}`, {
           credentials: "include",
         });
         const data = await res.json();
         if (!res.ok || !data.success || !data.data) {
-          setInitialError(data.error || data.message || "No se pudo cargar");
+          const msg = data.error || data.message || "No se pudo cargar";
+          showErrorModal("Error al cargar", msg);
           return;
         }
         setInitialData(data.data);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "No se pudo cargar";
-        setInitialError(message);
       } finally {
         setLoadingInitial(false);
       }
@@ -258,7 +267,9 @@ export default function TrabajoFormPage({
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || data.message || "Error al guardar");
+        const msg = data.error || data.message || "Error al guardar";
+        setError(msg);
+        showErrorModal("Ocurrio un problema", msg);
         return;
       }
 
@@ -341,10 +352,6 @@ export default function TrabajoFormPage({
           {loadingInitial ? (
             <div className="rounded-xl border border-slate-200 bg-white p-6 text-slate-500">
               Cargando datos...
-            </div>
-          ) : initialError ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-600">
-              {initialError}
             </div>
           ) : (
             <div className="space-y-6 pb-2">
@@ -570,11 +577,7 @@ export default function TrabajoFormPage({
                 </div>
               </div>
 
-              {error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
+              
 
               <div className="pt-2">
                 <button
@@ -601,6 +604,13 @@ export default function TrabajoFormPage({
             router.push(returnPath);
           }}
           message="Si vuelves ahora, el trabajo no se creara y se perderan los cambios no guardados. Deseas salir?"
+        />
+
+        <ErrorModal
+          open={errorOpen}
+          onClose={() => setErrorOpen(false)}
+          title={errorTitle}
+          description={errorDesc}
         />
       </main>
     </div>

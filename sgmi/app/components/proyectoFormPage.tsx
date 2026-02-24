@@ -8,6 +8,7 @@ import Sidebar from "./sidebar";
 import UserPill from "./userPill";
 import Hint from "./alerts/Hint";
 import ConfirmModal from "./alerts/ConfrimModal";
+import ErrorModal from "./alerts/ErrorModal";
 import { Toast } from "@/app/lib/swal";
 
 interface Memoria {
@@ -62,7 +63,6 @@ export default function ProyectoFormPage({
   const isEdit = mode === "edit";
 
   const [loadingInitial, setLoadingInitial] = useState(isEdit);
-  const [initialError, setInitialError] = useState<string | null>(null);
   const [initialData, setInitialData] = useState<ProyectoApiData | null>(null);
 
   const [grupos, setGrupos] = useState<Grupo[]>([]);
@@ -89,6 +89,16 @@ export default function ProyectoFormPage({
   const [isDirty, setIsDirty] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorDesc, setErrorDesc] = useState("");
+
+  const showErrorModal = (title: string, desc: string) => {
+    setErrorTitle(title);
+    setErrorDesc(desc);
+    setErrorOpen(true);
+  };
+
   useEffect(() => {
     const fetchGrupos = async () => {
       try {
@@ -109,19 +119,21 @@ export default function ProyectoFormPage({
       if (!isEdit || !proyectoId) return;
       try {
         setLoadingInitial(true);
-        setInitialError(null);
+        
         const res = await fetch(`/api/investigacion/${proyectoId}`, {
           credentials: "include",
         });
         const data = await res.json();
         if (!res.ok || !data.success || !data.data) {
-          setInitialError(data.error || data.message || "No se pudo cargar");
+          const msg = data.error || data.message || "No se pudo cargar";
+         
+          showErrorModal("Error al cargar", msg);
           return;
         }
         setInitialData(data.data);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "No se pudo cargar";
-        setInitialError(message);
+        showErrorModal("Error al cargar", message);
       } finally {
         setLoadingInitial(false);
       }
@@ -265,7 +277,9 @@ export default function ProyectoFormPage({
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setError(data.error || data.message || "Error al guardar");
+        const msg = data.error || data.message || "Error al guardar";
+        setError(msg);
+        showErrorModal("Ocurrio un problema", msg);
         return;
       }
 
@@ -342,11 +356,7 @@ export default function ProyectoFormPage({
 
           {loadingInitial ? (
             <div className="text-gray-500 py-4">Cargando datos...</div>
-          ) : initialError ? (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-600">
-              {initialError}
-            </div>
-          ) : (
+         ) : (
             <div className="space-y-6 pb-2">
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div>
@@ -553,11 +563,7 @@ export default function ProyectoFormPage({
                 />
               </div>
 
-              {error && (
-                <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
+              
 
               <button
                 type="button"
@@ -583,6 +589,13 @@ export default function ProyectoFormPage({
             router.push(returnPath);
           }}
           message="Si vuelves ahora, el proyecto no se creara y se perderan los cambios no guardados. Deseas salir?"
+        />
+
+        <ErrorModal
+          open={errorOpen}
+          onClose={() => setErrorOpen(false)}
+          title={errorTitle}
+          description={errorDesc}
         />
       </main>
     </div>

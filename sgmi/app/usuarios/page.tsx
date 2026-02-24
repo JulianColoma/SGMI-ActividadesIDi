@@ -98,13 +98,15 @@ function UsuariosPage() {
         fetchData();
         setOpenNuevo(false);
       } else {
-        fetchData();
-        setOpenNuevo(false);
+        setErrorTitle("No se pudo crear usuario");
+        setErrorDesc(result.error || result.message || "Error inesperado");
+        setShowError(true);
       }
     } catch (e: unknown) {
       console.error('Error creando usuario', e);
-      fetchData();
-      setOpenNuevo(false);
+      setErrorTitle("Error de conexion");
+      setErrorDesc(e instanceof Error ? e.message : "No se pudo contactar al servidor");
+      setShowError(true);
     }
   }
 
