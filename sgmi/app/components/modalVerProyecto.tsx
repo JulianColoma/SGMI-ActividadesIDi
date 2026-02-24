@@ -2,8 +2,9 @@
 
 import { HiOutlineX } from "react-icons/hi";
 
-type ProyectoView = {
+export type ProyectoView = {
   [key: string]: unknown;
+  id?: number;
   nombre?: string;
   codigo?: string;
   grupo_nombre?: string;

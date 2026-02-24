@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HiOutlineSearch, HiOutlineTrash, HiOutlineEye } from "react-icons/hi";
 import Sidebar from "../components/sidebar";
-import ModalVerProyecto from "../components/modalVerProyecto";
+import ModalVerProyecto, { ProyectoView } from "../components/modalVerProyecto";
 import UserPill from "../components/userPill";
 import { withAuth } from "../withAuth";
 import ErrorModal from "../components/alerts/ErrorModal";
@@ -319,10 +319,12 @@ function ProyectosPage() {
           setModalVer(false);
           setProyectoSeleccionado(null);
         }}
-        onEdit={(p: Proyecto) => {
+        onEdit={(p: ProyectoView) => {
           setModalVer(false);
           setProyectoSeleccionado(null);
-          router.push(`/proyectos/editar/${p.id}`);
+          if (p.id) {
+            router.push(`/proyectos/editar/${p.id}`);
+          }
         }}
       />
 

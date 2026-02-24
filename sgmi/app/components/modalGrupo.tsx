@@ -13,6 +13,8 @@ export default function ModalAddGrupo({ open, onClose, onSave }: ModalAddGrupoPr
   
   const [nombre, setNombre] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
+  const MAX_LONG_TEXT = 255;
+  const WARN_THRESHOLD = 30;
 
   // Reiniciar campos cuando se abre el modal
   useEffect(() => {
@@ -59,7 +61,8 @@ export default function ModalAddGrupo({ open, onClose, onSave }: ModalAddGrupoPr
                   : 'border border-gray-300 focus:ring-[#00c9a7]'
               }`}
               value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
+              onChange={(e) => setNombre(e.target.value.slice(0, MAX_LONG_TEXT))}
+              maxLength={MAX_LONG_TEXT}
               onBlur={() => {
                 const errs = { ...fieldErrors };
                 if (!nombre || !nombre.trim()) errs.nombre = 'El nombre del grupo es obligatorio';
@@ -68,6 +71,18 @@ export default function ModalAddGrupo({ open, onClose, onSave }: ModalAddGrupoPr
               }}
               placeholder="Ej: Grupo de Trabajo 2024..."
             />
+            <div
+              className={`mt-2 text-xs ${
+                (MAX_LONG_TEXT - nombre.length) <= WARN_THRESHOLD
+                  ? "text-amber-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {nombre.length}/{MAX_LONG_TEXT} caracteres
+              {(MAX_LONG_TEXT - nombre.length) <= WARN_THRESHOLD
+                ? ` - Quedan ${MAX_LONG_TEXT - nombre.length}`
+                : ""}
+            </div>
             {fieldErrors.nombre && <Hint show={true} message={fieldErrors.nombre} type="error" />}
           </div>
 

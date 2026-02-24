@@ -22,6 +22,10 @@ export default function ModalNuevoUsuario({ open, onClose, onSave }: ModalNuevoU
     role: "user" 
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
+  const MAX_LONG_TEXT = 255;
+  const WARN_THRESHOLD = 30;
+  const MAX_LONG_PASSWORD = 30;
+  
 
   const validateAndSave = () => {
     const errs: Record<string,string> = {};
@@ -66,7 +70,8 @@ export default function ModalNuevoUsuario({ open, onClose, onSave }: ModalNuevoU
                   : 'border border-gray-300'
               }`}
               value={form.nombre}
-              onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+              onChange={(e) => setForm({ ...form, nombre: e.target.value.slice(0, MAX_LONG_TEXT) })}
+              maxLength={MAX_LONG_TEXT}
               onBlur={() => {
                 const errs = { ...fieldErrors };
                 if (!form.nombre || !form.nombre.trim()) errs.nombre = 'El nombre es obligatorio';
@@ -74,6 +79,18 @@ export default function ModalNuevoUsuario({ open, onClose, onSave }: ModalNuevoU
                 setFieldErrors(errs);
               }}
             />
+            <div
+              className={`mt-2 text-xs ${
+                (MAX_LONG_TEXT - form.nombre.length) <= WARN_THRESHOLD
+                  ? "text-amber-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {form.nombre.length}/{MAX_LONG_TEXT} caracteres
+              {(MAX_LONG_TEXT - form.nombre.length) <= WARN_THRESHOLD
+                ? ` - Quedan ${MAX_LONG_TEXT - form.nombre.length}`
+                : ""}
+            </div>
             {fieldErrors.nombre && <Hint show={true} message={fieldErrors.nombre} type="error" />}
           </div>
 
@@ -87,7 +104,8 @@ export default function ModalNuevoUsuario({ open, onClose, onSave }: ModalNuevoU
                   : 'border border-gray-300'
               }`}
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => setForm({ ...form, email: e.target.value.slice(0, MAX_LONG_TEXT) })}
+              maxLength={MAX_LONG_TEXT}
               onBlur={() => {
                 const errs = { ...fieldErrors };
                 if (!form.email || !form.email.trim()) errs.email = 'El email es obligatorio';
@@ -96,6 +114,18 @@ export default function ModalNuevoUsuario({ open, onClose, onSave }: ModalNuevoU
                 setFieldErrors(errs);
               }}
             />
+            <div
+              className={`mt-2 text-xs ${
+                (MAX_LONG_TEXT - form.email.length) <= WARN_THRESHOLD
+                  ? "text-amber-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {form.email.length}/{MAX_LONG_TEXT} caracteres
+              {(MAX_LONG_TEXT - form.email.length) <= WARN_THRESHOLD
+                ? ` - Quedan ${MAX_LONG_TEXT - form.email.length}`
+                : ""}
+            </div>
             {fieldErrors.email && <Hint show={true} message={fieldErrors.email} type="error" />}
           </div>
 
@@ -110,7 +140,8 @@ export default function ModalNuevoUsuario({ open, onClose, onSave }: ModalNuevoU
                   : 'border border-gray-300'
               }`}
               value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              onChange={(e) => setForm({ ...form, password: e.target.value.slice(0, MAX_LONG_PASSWORD) })}
+              maxLength={MAX_LONG_PASSWORD}
               onBlur={() => {
                 const errs = { ...fieldErrors };
                 if (!form.password || form.password.length < 6) errs.password = 'La contraseña debe tener al menos 6 caracteres';
@@ -118,6 +149,18 @@ export default function ModalNuevoUsuario({ open, onClose, onSave }: ModalNuevoU
                 setFieldErrors(errs);
               }}
             />
+            <div
+              className={`mt-2 text-xs ${
+                (MAX_LONG_PASSWORD - form.password.length) <= 10
+                  ? "text-amber-600"
+                  : "text-gray-500"
+              }`}
+            >
+              {form.password.length}/{MAX_LONG_PASSWORD} caracteres
+              {(MAX_LONG_PASSWORD - form.password.length) <= 10
+                ? ` - Quedan ${MAX_LONG_PASSWORD - form.password.length}`
+                : ""}
+            </div>
             {fieldErrors.password && <Hint show={true} message={fieldErrors.password} type="error" />}
           </div>
 
